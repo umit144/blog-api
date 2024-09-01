@@ -43,8 +43,24 @@ func (repo UserRepository) FindAll() ([]types.User, error) {
 }
 
 func (repo UserRepository) FindById(id int) (*types.User, error) {
+	var user types.User
 
-	return nil, nil
+	sql, args, err := sq.Select("id, name, lastname, email, created_at").
+		From("users").
+		Where(sq.Eq{"id": id}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row := repo.db.QueryRowContext(context.Background(), sql, args...)
+	err = row.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (repo UserRepository) Create(user types.User) (*types.User, *error) {

@@ -58,4 +58,7 @@ watch:
 	    fi; \
 	fi
 
+migration:
+	@goose -dir internal/database/migration postgres "host=localhost port=5432 dbname=blueprint user=melkey password=password1234 sslmode=disable" up
+
 .PHONY: all build run test clean

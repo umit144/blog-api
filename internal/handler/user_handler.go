@@ -3,6 +3,7 @@ package handler
 import (
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -26,6 +27,20 @@ func NewUserHandler(db database.Service) UserHandler {
 }
 
 func (h *postgresUserHandler) HandleGet(c *fiber.Ctx) error {
+	var id = c.Params("id")
+
+	if id != "" {
+		idInt, err := strconv.Atoi(id)
+		if err != nil {
+			return c.Status(500).JSON(err.Error())
+		}
+		user, err := h.userRepository.FindById(idInt)
+		if err != nil {
+			return c.Status(500).JSON(err.Error())
+		}
+		return c.JSON(user)
+	}
+
 	var users, err = h.userRepository.FindAll()
 	if err != nil {
 		return c.Status(500).JSON(err.Error())
