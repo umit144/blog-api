@@ -3,9 +3,12 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"go-blog/internal/types"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserRepository struct {
@@ -63,15 +66,85 @@ func (repo UserRepository) FindById(id int) (*types.User, error) {
 	return &user, nil
 }
 
-func (repo UserRepository) Create(user types.User) (*types.User, *error) {
+func (repo UserRepository) Create(user types.User) (*types.User, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	user.Password = string(bytes)
+
+	sql, args, err := sq.Insert("users").
+		Columns("name", "lastname", "email", "password").
+		Values(user.Name, user.Lastname, user.Email, user.Password).
+		Suffix("RETURNING id").
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = repo.db.QueryRow(sql, args...).Scan(&user.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
-func (repo UserRepository) Update(id int, user types.User) (*types.User, *error) {
-	return nil, nil
+func (repo UserRepository) Update(id int, user types.User) (*types.User, error) {
+	sql, args, err := sq.Update("users").
+		Set("name", user.Name).
+		Set("lastname", user.Lastname).
+		Set("email", user.Email).
+		Where(sq.Eq{"id": id}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := repo.db.Exec(sql, args...)
+	if err != nil {
+		if strings.Contains(err.Error(), "23505") {
+			return nil, fmt.Errorf("email has already been taken")
+		}
+		return nil, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return nil, err
+	}
+	if rowsAffected == 0 {
+		return nil, fmt.Errorf("no rows affected, user with id %d not found", id)
+	}
+
+	return &user, nil
 }
 
-func (repo UserRepository) Delete(id int) *error {
+func (repo UserRepository) Delete(id int) error {
+	sql, args, err := sq.Delete("users").
+		Where(sq.Eq{"id": id}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return err
+	}
+
+	result, err := repo.db.Exec(sql, args...)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("no rows affected, user with id %d not found", id)
+	}
+
 	return nil
 }
