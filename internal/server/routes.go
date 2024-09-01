@@ -18,12 +18,18 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 	s.App.Get("/websocket", websocket.New(s.websocketHandler))
 
-	s.App.Get("/user", s.userHandler.HandleGet)
-	s.App.Get("/user/:id", s.userHandler.HandleGet)
-	s.App.Post("/user", s.userHandler.HandlePost)
-	s.App.Put("/user/:id", s.userHandler.HandlePut)
-	s.App.Patch("/user/:id", s.userHandler.HandlePatch)
-	s.App.Delete("/user/:id", s.userHandler.HandleDelete)
+	var api = s.App.Group("/api/v1")
+	var authMiddleware = s.NewAuthMiddleware()
+
+	var userResource = api.Group("/user")
+	userResource.Get("/", authMiddleware, s.userHandler.GetUserHandler)
+	userResource.Get("/:id", s.userHandler.GetUserHandler)
+	userResource.Post("/", s.userHandler.CreateUserHandler)
+	userResource.Put("/:id", s.userHandler.UpdateUserHandler)
+	userResource.Delete("/:id", s.userHandler.DeleteUserHandler)
+
+	var authResource = api.Group("/auth")
+	authResource.Post("/login", s.authHandler.LoginHandler)
 }
 
 func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {

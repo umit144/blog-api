@@ -5,6 +5,7 @@ import (
 
 	"go-blog/internal/database"
 	"go-blog/internal/handler"
+	"go-blog/internal/service"
 )
 
 type FiberServer struct {
@@ -12,6 +13,8 @@ type FiberServer struct {
 
 	db          database.Service
 	userHandler handler.UserHandler
+	authHandler handler.AuthHandler
+	authService service.AuthService
 }
 
 func New() *FiberServer {
@@ -23,7 +26,9 @@ func New() *FiberServer {
 		}),
 
 		db:          db,
-		userHandler: handler.NewUserHandler(db),
+		userHandler: *handler.NewUserHandler(db),
+		authHandler: *handler.NewAuthHandler(db),
+		authService: *service.NewAuthService(db),
 	}
 
 	return server

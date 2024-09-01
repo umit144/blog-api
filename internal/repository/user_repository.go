@@ -22,7 +22,7 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (repo UserRepository) FindAll() ([]types.User, error) {
 	var users []types.User
 
-	sql, _, _ := sq.Select("id, name, lastname, email, created_at").From("users").ToSql()
+	sql, _, _ := sq.Select("id, name, lastname, email, password, created_at").From("users").ToSql()
 	rows, err := repo.db.QueryContext(context.Background(), sql)
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func (repo UserRepository) FindAll() ([]types.User, error) {
 
 	for rows.Next() {
 		var user types.User
-		err := rows.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.CreatedAt)
+		err := rows.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -43,6 +43,27 @@ func (repo UserRepository) FindAll() ([]types.User, error) {
 	}
 
 	return users, nil
+}
+
+func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
+	var user types.User
+
+	sql, args, err := sq.Select("id, name, lastname, email, password, created_at").
+		From("users").
+		Where(sq.Eq{"email": email}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	row := repo.db.QueryRowContext(context.Background(), sql, args...)
+	err = row.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 func (repo UserRepository) FindById(id int) (*types.User, error) {

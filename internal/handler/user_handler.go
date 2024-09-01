@@ -9,25 +9,17 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-type UserHandler interface {
-	HandleGet(c *fiber.Ctx) error
-	HandlePost(c *fiber.Ctx) error
-	HandlePut(c *fiber.Ctx) error
-	HandlePatch(c *fiber.Ctx) error
-	HandleDelete(c *fiber.Ctx) error
-}
-
-type postgresUserHandler struct {
+type UserHandler struct {
 	userRepository repository.UserRepository
 }
 
-func NewUserHandler(db database.Service) UserHandler {
-	return &postgresUserHandler{
+func NewUserHandler(db database.Service) *UserHandler {
+	return &UserHandler{
 		userRepository: *repository.NewUserRepository(db.GetInstance()),
 	}
 }
 
-func (h *postgresUserHandler) HandleGet(c *fiber.Ctx) error {
+func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 	var id = c.Params("id")
 
 	if id != "" {
@@ -59,7 +51,7 @@ func (h *postgresUserHandler) HandleGet(c *fiber.Ctx) error {
 	return c.JSON(users)
 }
 
-func (h *postgresUserHandler) HandlePost(c *fiber.Ctx) error {
+func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
 	var user types.User
 
 	if err := c.BodyParser(&user); err != nil {
@@ -87,7 +79,7 @@ func (h *postgresUserHandler) HandlePost(c *fiber.Ctx) error {
 	return c.Status(201).JSON(createdUser)
 }
 
-func (h *postgresUserHandler) HandlePut(c *fiber.Ctx) error {
+func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	var user types.User
 	var id = c.Params("id")
 	idInt, err := strconv.Atoi(id)
@@ -123,12 +115,7 @@ func (h *postgresUserHandler) HandlePut(c *fiber.Ctx) error {
 	return c.Status(200).JSON(updatedUser)
 }
 
-func (h *postgresUserHandler) HandlePatch(c *fiber.Ctx) error {
-	// Implementation goes here
-	return nil
-}
-
-func (h *postgresUserHandler) HandleDelete(c *fiber.Ctx) error {
+func (h *UserHandler) DeleteUserHandler(c *fiber.Ctx) error {
 	var id = c.Params("id")
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
