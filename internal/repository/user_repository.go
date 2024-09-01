@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"fmt"
 	"go-blog/internal/types"
-	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"golang.org/x/crypto/bcrypt"
@@ -66,7 +65,7 @@ func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
 	return &user, nil
 }
 
-func (repo UserRepository) FindById(id int) (*types.User, error) {
+func (repo UserRepository) FindById(id string) (*types.User, error) {
 	var user types.User
 
 	sql, args, err := sq.Select("id, name, lastname, email, created_at").
@@ -128,9 +127,6 @@ func (repo UserRepository) Update(id int, user types.User) (*types.User, error) 
 
 	result, err := repo.db.Exec(sql, args...)
 	if err != nil {
-		if strings.Contains(err.Error(), "23505") {
-			return nil, fmt.Errorf("email has already been taken")
-		}
 		return nil, err
 	}
 

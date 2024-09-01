@@ -6,7 +6,6 @@ import (
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -41,8 +40,7 @@ func (h *AuthService) ParseToken(tokenString string) (*types.User, error) {
 		return nil, err
 	}
 
-	idInt, _ := strconv.Atoi(id)
-	user, err := h.userRepository.FindById(idInt)
+	user, err := h.userRepository.FindById(id)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +60,7 @@ func (h *AuthService) Login(email string, password string) (*string, error) {
 	}
 
 	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": strconv.Itoa(user.ID),
+		"sub": user.ID,
 		"iss": "go-blog",
 		"aud": "user-role", // TODO : implement authorization
 		"exp": time.Now().Add(time.Hour).Unix(),

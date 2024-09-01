@@ -23,14 +23,7 @@ func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 	var id = c.Params("id")
 
 	if id != "" {
-		idInt, err := strconv.Atoi(id)
-		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"error":   "Can't parse id to int",
-				"message": err.Error(),
-			})
-		}
-		user, err := h.userRepository.FindById(idInt)
+		user, err := h.userRepository.FindById(id)
 		if err != nil {
 			return c.Status(500).JSON(fiber.Map{
 				"error":   "Failed to getting user by id",

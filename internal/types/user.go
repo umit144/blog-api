@@ -8,7 +8,7 @@ import (
 )
 
 type User struct {
-	ID        int       `json:"id"`
+	ID        string    `json:"id"`
 	Name      string    `json:"name" validate:"required,min=3,max=50"`
 	Lastname  string    `json:"lastname" validate:"required,min=3,max=50"`
 	Email     string    `json:"email" validate:"required,email"`
