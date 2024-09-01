@@ -22,6 +22,9 @@ type Service interface {
 	// Close terminates the database connection.
 	// It returns an error if the connection cannot be closed.
 	Close() error
+
+	// Get DB Connection
+	GetInstance() *sql.DB
 }
 
 type service struct {
@@ -48,6 +51,10 @@ func New() Service {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(20)
+
 	dbInstance = &service{
 		db: db,
 	}
@@ -112,4 +119,8 @@ func (s *service) Health() map[string]string {
 func (s *service) Close() error {
 	log.Printf("Disconnected from database: %s", database)
 	return s.db.Close()
+}
+
+func (s *service) GetInstance() *sql.DB {
+	return s.db
 }

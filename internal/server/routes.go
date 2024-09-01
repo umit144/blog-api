@@ -18,6 +18,12 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 	s.App.Get("/websocket", websocket.New(s.websocketHandler))
 
+	s.App.Get("/user", s.userHandler.HandleGet)
+	s.App.Get("/user/:id", s.userHandler.HandleGet)
+	s.App.Post("/user", s.userHandler.HandlePost)
+	s.App.Put("/user/:id", s.userHandler.HandlePut)
+	s.App.Patch("/user/:id", s.userHandler.HandlePatch)
+	s.App.Delete("/user/:id", s.userHandler.HandleDelete)
 }
 
 func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {
