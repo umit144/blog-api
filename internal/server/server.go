@@ -15,6 +15,7 @@ type FiberServer struct {
 	userHandler handler.UserHandler
 	authHandler handler.AuthHandler
 	authService service.AuthService
+	postHandler handler.PostHandler
 }
 
 func New() *FiberServer {
@@ -29,6 +30,7 @@ func New() *FiberServer {
 		userHandler: *handler.NewUserHandler(db),
 		authHandler: *handler.NewAuthHandler(db),
 		authService: *service.NewAuthService(db),
+		postHandler: *handler.NewPostHandler(db),
 	}
 
 	return server

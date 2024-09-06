@@ -23,10 +23,17 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 	var userResource = api.Group("/user")
 	userResource.Get("/", authMiddleware, s.userHandler.GetUserHandler)
-	userResource.Get("/:id", s.userHandler.GetUserHandler)
-	userResource.Post("/", s.userHandler.CreateUserHandler)
-	userResource.Put("/:id", s.userHandler.UpdateUserHandler)
-	userResource.Delete("/:id", s.userHandler.DeleteUserHandler)
+	userResource.Get("/:id", authMiddleware, s.userHandler.GetUserHandler)
+	userResource.Post("/", authMiddleware, s.userHandler.CreateUserHandler)
+	userResource.Put("/:id", authMiddleware, s.userHandler.UpdateUserHandler)
+	userResource.Delete("/:id", authMiddleware, s.userHandler.DeleteUserHandler)
+
+	var postResource = api.Group("/post")
+	postResource.Get("/", authMiddleware, s.postHandler.GetPostHandler)
+	postResource.Get("/:slug", authMiddleware, s.postHandler.GetPostHandler)
+	postResource.Post("/", authMiddleware, s.postHandler.CreatePostHandler)
+	postResource.Put("/:id", authMiddleware, s.postHandler.UpdatePostHandler)
+	postResource.Delete("/:id", authMiddleware, s.postHandler.DeletePostHandler)
 
 	var authResource = api.Group("/auth")
 	authResource.Post("/login", s.authHandler.LoginHandler)

@@ -10,12 +10,12 @@ import (
 )
 
 type User struct {
-	Id        string    `json:"id"`
-	Name      string    `json:"name" validate:"required,min=3,max=50"`
-	Lastname  string    `json:"lastname" validate:"required,min=3,max=50"`
-	Email     string    `json:"email" validate:"required,email"`
+	Id        string    `json:"id,omitempty"`
+	Name      string    `json:"name,omitempty" validate:"required,min=3,max=50"`
+	Lastname  string    `json:"lastname,omitempty" validate:"required,min=3,max=50"`
+	Email     string    `json:"email,omitempty" validate:"required,email"`
 	Password  string    `json:"password,omitempty" validate:"required,min=8,max=150"`
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt,omitempty"`
 }
 
 func (u User) Validate() map[string]string {
@@ -36,15 +36,21 @@ func (u User) Validate() map[string]string {
 
 func (u User) MarshalJSON() ([]byte, error) {
 	type Alias User
-	return json.Marshal(&struct {
+	aux := struct {
 		*Alias
-		Password  interface{} `json:"password,omitempty"` // Exclude Password field from JSON
-		CreatedAt string      `json:"createdAt"`
+		Password  interface{} `json:"password,omitempty"`
+		CreatedAt *string     `json:"createdAt,omitempty"`
 	}{
-		Alias:     (*Alias)(&u),
-		Password:  nil,
-		CreatedAt: u.CreatedAt.Format(time.RFC1123),
-	})
+		Alias:    (*Alias)(&u),
+		Password: nil,
+	}
+
+	if !u.CreatedAt.IsZero() {
+		createdAt := u.CreatedAt.Format(time.RFC1123)
+		aux.CreatedAt = &createdAt
+	}
+
+	return json.Marshal(aux)
 }
 
 func (u User) CreateToken() (*string, error) {
