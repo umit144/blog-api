@@ -23,7 +23,7 @@ func NewAuthService(db database.Service) *AuthService {
 	}
 }
 
-func (h *AuthService) ParseToken(tokenString string) (*types.User, error) {
+func (s *AuthService) ParseToken(tokenString string) (*types.User, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
@@ -39,7 +39,7 @@ func (h *AuthService) ParseToken(tokenString string) (*types.User, error) {
 		return nil, err
 	}
 
-	user, err := h.userRepository.FindById(id)
+	user, err := s.userRepository.FindById(id)
 	if err != nil {
 		return nil, err
 	}
@@ -47,8 +47,8 @@ func (h *AuthService) ParseToken(tokenString string) (*types.User, error) {
 	return user, nil
 }
 
-func (h *AuthService) Login(email string, password string) (*string, *types.User, error) {
-	user, err := h.userRepository.FindByEmail(email)
+func (s *AuthService) Login(email string, password string) (*string, *types.User, error) {
+	user, err := s.userRepository.FindByEmail(email)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -66,8 +66,8 @@ func (h *AuthService) Login(email string, password string) (*string, *types.User
 	return tokenString, user, nil
 }
 
-func (h *AuthService) Register(user types.User) (*string, *types.User, error) {
-	createdUser, err := h.userRepository.Create(user)
+func (s *AuthService) Register(user types.User) (*string, *types.User, error) {
+	createdUser, err := s.userRepository.Create(user)
 	if err != nil {
 		return nil, nil, err
 	}
