@@ -1,6 +1,8 @@
 package repository_test
 
 import (
+	"database/sql"
+	"github.com/google/uuid"
 	"testing"
 	"time"
 
@@ -120,22 +122,32 @@ func TestUserRepository_Update(t *testing.T) {
 
 	repo := repository.NewUserRepository(db)
 
+	userID := uuid.New().String()
 	updatedUser := types.User{
-		Id:       "1",
+		Id:       userID,
 		Name:     "John Updated",
 		Lastname: "Doe Updated",
 		Email:    "john.updated@example.com",
 	}
 
-	mock.ExpectExec("UPDATE users").
-		WithArgs(updatedUser.Name, updatedUser.Lastname, updatedUser.Email, 1).
-		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectQuery("SELECT id FROM users WHERE").
+		WithArgs(updatedUser.Email, userID).
+		WillReturnError(sql.ErrNoRows)
 
-	result, err := repo.Update(1, updatedUser)
+	mock.ExpectExec("UPDATE users").
+		WithArgs(updatedUser.Name, updatedUser.Lastname, updatedUser.Email, userID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	result, err := repo.Update(userID, updatedUser)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	assert.Equal(t, "John Updated", result.Name)
+	assert.Equal(t, userID, result.Id)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
 
 func TestUserRepository_Delete(t *testing.T) {
@@ -147,11 +159,17 @@ func TestUserRepository_Delete(t *testing.T) {
 
 	repo := repository.NewUserRepository(db)
 
-	mock.ExpectExec("DELETE FROM users").WithArgs(1).WillReturnResult(sqlmock.NewResult(1, 1))
+	userID := uuid.New().String()
 
-	err = repo.Delete(1)
+	mock.ExpectExec("DELETE FROM users").WithArgs(userID).WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.Delete(userID)
 
 	assert.NoError(t, err)
+
+	if err := mock.ExpectationsWereMet(); err != nil {
+		t.Errorf("there were unfulfilled expectations: %s", err)
+	}
 }
 
 func TestUserRepository_Create_DuplicateEmail(t *testing.T) {
