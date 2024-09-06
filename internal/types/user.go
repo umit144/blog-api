@@ -2,13 +2,15 @@ package types
 
 import (
 	"encoding/json"
+	"os"
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type User struct {
-	ID        string    `json:"id"`
+	Id        string    `json:"id"`
 	Name      string    `json:"name" validate:"required,min=3,max=50"`
 	Lastname  string    `json:"lastname" validate:"required,min=3,max=50"`
 	Email     string    `json:"email" validate:"required,email"`
@@ -43,4 +45,22 @@ func (u User) MarshalJSON() ([]byte, error) {
 		Password:  nil,
 		CreatedAt: u.CreatedAt.Format(time.RFC1123),
 	})
+}
+
+func (u User) CreateToken() (*string, error) {
+	var secretKey []byte = []byte(os.Getenv("JWT_SECRET"))
+	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": u.Id,
+		"iss": "go-blog",
+		"aud": "user-role",
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	})
+
+	tokenString, err := claims.SignedString(secretKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tokenString, nil
 }

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go-blog/internal/types"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"golang.org/x/crypto/bcrypt"
@@ -30,7 +31,7 @@ func (repo UserRepository) FindAll() ([]types.User, error) {
 
 	for rows.Next() {
 		var user types.User
-		err := rows.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
+		err := rows.Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -57,7 +58,7 @@ func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
 	}
 
 	row := repo.db.QueryRowContext(context.Background(), sql, args...)
-	err = row.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
+	err = row.Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +79,7 @@ func (repo UserRepository) FindById(id string) (*types.User, error) {
 	}
 
 	row := repo.db.QueryRowContext(context.Background(), sql, args...)
-	err = row.Scan(&user.ID, &user.Name, &user.Lastname, &user.Email, &user.CreatedAt)
+	err = row.Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +106,11 @@ func (repo UserRepository) Create(user types.User) (*types.User, error) {
 		return nil, err
 	}
 
-	err = repo.db.QueryRow(sql, args...).Scan(&user.ID)
+	err = repo.db.QueryRow(sql, args...).Scan(&user.Id)
 	if err != nil {
+		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			return nil, fmt.Errorf("user with this email already exists")
+		}
 		return nil, err
 	}
 

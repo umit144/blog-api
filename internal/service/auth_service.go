@@ -6,7 +6,6 @@ import (
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"os"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -48,29 +47,35 @@ func (h *AuthService) ParseToken(tokenString string) (*types.User, error) {
 	return user, nil
 }
 
-func (h *AuthService) Login(email string, password string) (*string, error) {
+func (h *AuthService) Login(email string, password string) (*string, *types.User, error) {
 	user, err := h.userRepository.FindByEmail(email)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	claims := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": user.ID,
-		"iss": "go-blog",
-		"aud": "user-role", // TODO : implement authorization
-		"exp": time.Now().Add(time.Hour).Unix(),
-		"iat": time.Now().Unix(),
-	})
-
-	tokenString, err := claims.SignedString(secretKey)
+	tokenString, err := user.CreateToken()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &tokenString, nil
+	return tokenString, user, nil
+}
+
+func (h *AuthService) Register(user types.User) (*string, *types.User, error) {
+	createdUser, err := h.userRepository.Create(user)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	token, err := createdUser.CreateToken()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return token, createdUser, nil
 }
