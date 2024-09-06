@@ -2,12 +2,10 @@ package handler
 
 import (
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
-	"strconv"
-
-	"github.com/gofiber/fiber/v2"
 )
 
 type UserHandler struct {
@@ -77,14 +75,6 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	var user types.User
 	id := c.Params("id")
 
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "Invalid ID",
-			"message": fmt.Sprintf("Could not convert ID to number: %v", err),
-		})
-	}
-
 	if err := c.BodyParser(&user); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error":   "Invalid data format",
@@ -99,11 +89,11 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	updatedUser, err := h.userRepository.Update(idInt, user)
+	updatedUser, err := h.userRepository.Update(id, user)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to update user",
-			"message": fmt.Sprintf("Error updating user with ID %d: %v", idInt, err),
+			"message": fmt.Sprintf("Error updating user with ID %d: %v", id, err),
 		})
 	}
 
@@ -113,23 +103,15 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 func (h *UserHandler) DeleteUserHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	idInt, err := strconv.Atoi(id)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error":   "Invalid ID",
-			"message": fmt.Sprintf("Could not convert ID to number: %v", err),
-		})
-	}
-
-	err = h.userRepository.Delete(idInt)
+	var err = h.userRepository.Delete(id)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to delete user",
-			"message": fmt.Sprintf("Error deleting user with ID %d: %v", idInt, err),
+			"message": fmt.Sprintf("Error deleting user with ID %d: %v", id, err),
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": fmt.Sprintf("User with ID %d successfully deleted", idInt),
+		"message": fmt.Sprintf("User with ID %d successfully deleted", id),
 	})
 }

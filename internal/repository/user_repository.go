@@ -123,8 +123,28 @@ func (repo UserRepository) Create(user types.User) (*types.User, error) {
 
 	return &user, nil
 }
+func (repo UserRepository) Update(id string, user types.User) (*types.User, error) {
+	checkSQL, checkArgs, err := sq.Select("id").
+		From("users").
+		Where(sq.And{
+			sq.Eq{"email": user.Email},
+			sq.NotEq{"id": id},
+		}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error creating SQL for email check: %v", err)
+	}
 
-func (repo UserRepository) Update(id int, user types.User) (*types.User, error) {
+	var existingID string
+	err = repo.db.QueryRowContext(context.Background(), checkSQL, checkArgs...).Scan(&existingID)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error checking existing email: %v", err)
+	}
+	if existingID != "" {
+		return nil, fmt.Errorf("a user with email %s already exists", user.Email)
+	}
+
 	sql, args, err := sq.Update("users").
 		Set("name", user.Name).
 		Set("lastname", user.Lastname).
@@ -146,13 +166,13 @@ func (repo UserRepository) Update(id int, user types.User) (*types.User, error) 
 		return nil, fmt.Errorf("error getting rows affected: %v", err)
 	}
 	if rowsAffected == 0 {
-		return nil, fmt.Errorf("no user found with id %d to update", id)
+		return nil, fmt.Errorf("no user found with id %s to update", id)
 	}
 
 	return &user, nil
 }
 
-func (repo UserRepository) Delete(id int) error {
+func (repo UserRepository) Delete(id string) error {
 	sql, args, err := sq.Delete("users").
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar).
