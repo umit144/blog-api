@@ -33,8 +33,8 @@ docker-down:
 
 # Test the application
 test:
-	@echo "Testing..."
-	@go test ./tests -v
+	@echo "Running tests..."
+	@go test ./tests/... -v
 
 # Clean the binary
 clean:
