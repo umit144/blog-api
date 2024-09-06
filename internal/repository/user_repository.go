@@ -22,10 +22,17 @@ func NewUserRepository(db *sql.DB) *UserRepository {
 func (repo UserRepository) FindAll() ([]types.User, error) {
 	var users []types.User
 
-	sql, _, _ := sq.Select("id, name, lastname, email, password, created_at").From("users").ToSql()
-	rows, err := repo.db.QueryContext(context.Background(), sql)
+	sql, args, err := sq.Select("id, name, lastname, email, password, created_at").
+		From("users").
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating SQL for FindAll: %v", err)
+	}
+
+	rows, err := repo.db.QueryContext(context.Background(), sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing FindAll query: %v", err)
 	}
 	defer rows.Close()
 
@@ -33,13 +40,13 @@ func (repo UserRepository) FindAll() ([]types.User, error) {
 		var user types.User
 		err := rows.Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error scanning row in FindAll: %v", err)
 		}
 		users = append(users, user)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error after iterating rows in FindAll: %v", err)
 	}
 
 	return users, nil
@@ -54,13 +61,13 @@ func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating SQL for FindByEmail: %v", err)
 	}
 
-	row := repo.db.QueryRowContext(context.Background(), sql, args...)
-	err = row.Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
+	err = repo.db.QueryRowContext(context.Background(), sql, args...).
+		Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing FindByEmail query: %v", err)
 	}
 
 	return &user, nil
@@ -75,13 +82,13 @@ func (repo UserRepository) FindById(id string) (*types.User, error) {
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating SQL for FindById: %v", err)
 	}
 
-	row := repo.db.QueryRowContext(context.Background(), sql, args...)
-	err = row.Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.CreatedAt)
+	err = repo.db.QueryRowContext(context.Background(), sql, args...).
+		Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.CreatedAt)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing FindById query: %v", err)
 	}
 
 	return &user, nil
@@ -90,7 +97,7 @@ func (repo UserRepository) FindById(id string) (*types.User, error) {
 func (repo UserRepository) Create(user types.User) (*types.User, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error hashing password: %v", err)
 	}
 
 	user.Password = string(bytes)
@@ -98,20 +105,20 @@ func (repo UserRepository) Create(user types.User) (*types.User, error) {
 	sql, args, err := sq.Insert("users").
 		Columns("name", "lastname", "email", "password").
 		Values(user.Name, user.Lastname, user.Email, user.Password).
-		Suffix("RETURNING id").
+		Suffix("RETURNING id, created_at").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating SQL for Create: %v", err)
 	}
 
-	err = repo.db.QueryRow(sql, args...).Scan(&user.Id)
+	err = repo.db.QueryRowContext(context.Background(), sql, args...).Scan(&user.Id, &user.CreatedAt)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
-			return nil, fmt.Errorf("user with this email already exists")
+			return nil, fmt.Errorf("user with email %s already exists", user.Email)
 		}
-		return nil, err
+		return nil, fmt.Errorf("error executing Create query: %v", err)
 	}
 
 	return &user, nil
@@ -126,20 +133,20 @@ func (repo UserRepository) Update(id int, user types.User) (*types.User, error) 
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating SQL for Update: %v", err)
 	}
 
-	result, err := repo.db.Exec(sql, args...)
+	result, err := repo.db.ExecContext(context.Background(), sql, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error executing Update query: %v", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting rows affected: %v", err)
 	}
 	if rowsAffected == 0 {
-		return nil, fmt.Errorf("no rows affected, user with id %d not found", id)
+		return nil, fmt.Errorf("no user found with id %d to update", id)
 	}
 
 	return &user, nil
@@ -151,20 +158,20 @@ func (repo UserRepository) Delete(id int) error {
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 	if err != nil {
-		return err
+		return fmt.Errorf("error creating SQL for Delete: %v", err)
 	}
 
-	result, err := repo.db.Exec(sql, args...)
+	result, err := repo.db.ExecContext(context.Background(), sql, args...)
 	if err != nil {
-		return err
+		return fmt.Errorf("error executing Delete query: %v", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting rows affected: %v", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("no rows affected, user with id %d not found", id)
+		return fmt.Errorf("no user found with id %d to delete", id)
 	}
 
 	return nil

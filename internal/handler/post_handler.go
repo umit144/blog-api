@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
@@ -26,7 +27,8 @@ func (h *PostHandler) GetPostHandler(c *fiber.Ctx) error {
 		post, err := h.postRepository.FindBySlug(slug)
 		if err != nil {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error": "Post not found",
+				"error":   "Post not found",
+				"message": fmt.Sprintf("No post found with slug: %s", slug),
 			})
 		}
 		return c.JSON(post)
@@ -35,7 +37,8 @@ func (h *PostHandler) GetPostHandler(c *fiber.Ctx) error {
 	posts, err := h.postRepository.FindAll()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to retrieve posts",
+			"error":   "Failed to retrieve posts",
+			"message": fmt.Sprintf("Error occurred while fetching posts: %v", err),
 		})
 	}
 
@@ -47,7 +50,8 @@ func (h *PostHandler) CreatePostHandler(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&post); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request payload",
+			"error":   "Invalid request payload",
+			"message": fmt.Sprintf("Error parsing post data: %v", err),
 		})
 	}
 
@@ -67,6 +71,7 @@ func (h *PostHandler) CreatePostHandler(c *fiber.Ctx) error {
 
 	post.Author.Id = user.Id
 
+	// Generate slug
 	slug := strings.ToLower(post.Title)
 	reg, _ := regexp.Compile("[^a-z0-9]+")
 	slug = reg.ReplaceAllString(slug, "-")
@@ -75,7 +80,8 @@ func (h *PostHandler) CreatePostHandler(c *fiber.Ctx) error {
 	createdPost, err := h.postRepository.Create(post)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create post",
+			"error":   "Failed to create post",
+			"message": fmt.Sprintf("Error occurred while creating post: %v", err),
 		})
 	}
 
@@ -88,7 +94,8 @@ func (h *PostHandler) UpdatePostHandler(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&post); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request payload",
+			"error":   "Invalid request payload",
+			"message": fmt.Sprintf("Error parsing post data: %v", err),
 		})
 	}
 
@@ -109,7 +116,8 @@ func (h *PostHandler) UpdatePostHandler(c *fiber.Ctx) error {
 	existingPost, err := h.postRepository.FindById(id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Post not found",
+			"error":   "Post not found",
+			"message": fmt.Sprintf("No post found with ID: %s", id),
 		})
 	}
 
@@ -119,6 +127,7 @@ func (h *PostHandler) UpdatePostHandler(c *fiber.Ctx) error {
 		})
 	}
 
+	// Generate slug
 	slug := strings.ToLower(post.Title)
 	reg, _ := regexp.Compile("[^a-z0-9]+")
 	slug = reg.ReplaceAllString(slug, "-")
@@ -127,7 +136,8 @@ func (h *PostHandler) UpdatePostHandler(c *fiber.Ctx) error {
 	updatedPost, err := h.postRepository.Update(id, post)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to update post",
+			"error":   "Failed to update post",
+			"message": fmt.Sprintf("Error occurred while updating post: %v", err),
 		})
 	}
 
@@ -147,7 +157,8 @@ func (h *PostHandler) DeletePostHandler(c *fiber.Ctx) error {
 	existingPost, err := h.postRepository.FindById(id)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Post not found",
+			"error":   "Post not found",
+			"message": fmt.Sprintf("No post found with ID: %s", id),
 		})
 	}
 
@@ -159,7 +170,8 @@ func (h *PostHandler) DeletePostHandler(c *fiber.Ctx) error {
 
 	if err := h.postRepository.Delete(id); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to delete post",
+			"error":   "Failed to delete post",
+			"message": fmt.Sprintf("Error occurred while deleting post: %v", err),
 		})
 	}
 

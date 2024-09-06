@@ -12,34 +12,40 @@ import (
 )
 
 func (s *FiberServer) RegisterFiberRoutes() {
+	// Main routes
 	s.App.Get("/", s.HelloWorldHandler)
-
 	s.App.Get("/health", s.healthHandler)
-
 	s.App.Get("/websocket", websocket.New(s.websocketHandler))
 
-	var api = s.App.Group("/api")
-	var authMiddleware = s.NewAuthMiddleware()
+	api := s.App.Group("/api")
+	authMiddleware := s.NewAuthMiddleware()
 
-	var userResource = api.Group("/user")
-	userResource.Get("/", authMiddleware, s.userHandler.GetUserHandler)
-	userResource.Get("/:id", authMiddleware, s.userHandler.GetUserHandler)
-	userResource.Post("/", authMiddleware, s.userHandler.CreateUserHandler)
-	userResource.Put("/:id", authMiddleware, s.userHandler.UpdateUserHandler)
-	userResource.Delete("/:id", authMiddleware, s.userHandler.DeleteUserHandler)
+	userRoutes := api.Group("/user")
+	userRoutes.Use(authMiddleware)
+	{
+		userRoutes.Get("/", s.userHandler.GetUserHandler)
+		userRoutes.Get("/:id", s.userHandler.GetUserHandler)
+		userRoutes.Post("/", s.userHandler.CreateUserHandler)
+		userRoutes.Put("/:id", s.userHandler.UpdateUserHandler)
+		userRoutes.Delete("/:id", s.userHandler.DeleteUserHandler)
+	}
 
-	var postResource = api.Group("/post")
-	postResource.Get("/", authMiddleware, s.postHandler.GetPostHandler)
-	postResource.Get("/:slug", authMiddleware, s.postHandler.GetPostHandler)
-	postResource.Post("/", authMiddleware, s.postHandler.CreatePostHandler)
-	postResource.Put("/:id", authMiddleware, s.postHandler.UpdatePostHandler)
-	postResource.Delete("/:id", authMiddleware, s.postHandler.DeletePostHandler)
+	postRoutes := api.Group("/post")
+	postRoutes.Use(authMiddleware)
+	{
+		postRoutes.Get("/", s.postHandler.GetPostHandler)
+		postRoutes.Get("/:slug", s.postHandler.GetPostHandler)
+		postRoutes.Post("/", s.postHandler.CreatePostHandler)
+		postRoutes.Put("/:id", s.postHandler.UpdatePostHandler)
+		postRoutes.Delete("/:id", s.postHandler.DeletePostHandler)
+	}
 
-	var authResource = api.Group("/auth")
-	authResource.Post("/login", s.authHandler.LoginHandler)
-	authResource.Post("/register", s.authHandler.RegisterHandler)
+	authRoutes := api.Group("/auth")
+	{
+		authRoutes.Post("/login", s.authHandler.LoginHandler)
+		authRoutes.Post("/register", s.authHandler.RegisterHandler)
+	}
 }
-
 func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {
 	resp := fiber.Map{
 		"message": "Hello World",

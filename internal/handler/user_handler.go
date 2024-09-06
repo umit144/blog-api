@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
@@ -20,24 +21,24 @@ func NewUserHandler(db database.Service) *UserHandler {
 }
 
 func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
-	var id = c.Params("id")
+	id := c.Params("id")
 
 	if id != "" {
 		user, err := h.userRepository.FindById(id)
 		if err != nil {
-			return c.Status(500).JSON(fiber.Map{
-				"error":   "Failed to getting user by id",
-				"message": err.Error(),
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error":   "User not found",
+				"message": fmt.Sprintf("Error retrieving user with ID %s: %v", id, err),
 			})
 		}
 		return c.JSON(user)
 	}
 
-	var users, err = h.userRepository.FindAll()
+	users, err := h.userRepository.FindAll()
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error":   "Failed to getting users",
-			"message": err.Error(),
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Failed to retrieve users",
+			"message": fmt.Sprintf("Error listing all users: %v", err),
 		})
 	}
 
@@ -48,85 +49,87 @@ func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
 	var user types.User
 
 	if err := c.BodyParser(&user); err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error":   "Can't parse payload",
-			"message": err.Error(),
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "Invalid data format",
+			"message": fmt.Sprintf("Error parsing user data: %v", err),
 		})
 	}
 
 	if err := user.Validate(); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Validation failed",
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Validation error",
 			"fails": err,
 		})
 	}
 
 	createdUser, err := h.userRepository.Create(user)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to create user",
-			"message": err.Error(),
+			"message": fmt.Sprintf("Error occurred while creating new user: %v", err),
 		})
 	}
 
-	return c.Status(201).JSON(createdUser)
+	return c.Status(fiber.StatusCreated).JSON(createdUser)
 }
 
 func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	var user types.User
-	var id = c.Params("id")
+	id := c.Params("id")
+
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error":   "Can't parse id to int",
-			"message": err.Error(),
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "Invalid ID",
+			"message": fmt.Sprintf("Could not convert ID to number: %v", err),
 		})
 	}
 
 	if err := c.BodyParser(&user); err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error":   "Can't parse payload",
-			"message": err.Error(),
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "Invalid data format",
+			"message": fmt.Sprintf("Error parsing user data: %v", err),
 		})
 	}
 
 	if err := user.Validate(); err != nil {
-		return c.Status(400).JSON(fiber.Map{
-			"error": "Validation failed",
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Validation error",
 			"fails": err,
 		})
 	}
 
 	updatedUser, err := h.userRepository.Update(idInt, user)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to update user",
-			"message": err.Error(),
+			"message": fmt.Sprintf("Error updating user with ID %d: %v", idInt, err),
 		})
 	}
 
-	return c.Status(200).JSON(updatedUser)
+	return c.JSON(updatedUser)
 }
 
 func (h *UserHandler) DeleteUserHandler(c *fiber.Ctx) error {
-	var id = c.Params("id")
+	id := c.Params("id")
+
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error":   "Can't parse id to int",
-			"message": err.Error(),
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "Invalid ID",
+			"message": fmt.Sprintf("Could not convert ID to number: %v", err),
 		})
 	}
 
 	err = h.userRepository.Delete(idInt)
 	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to delete user",
-			"message": err.Error(),
+			"message": fmt.Sprintf("Error deleting user with ID %d: %v", idInt, err),
 		})
 	}
 
-	return c.Status(200).JSON(fiber.Map{
-		"message": "User deleted successfully",
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": fmt.Sprintf("User with ID %d successfully deleted", idInt),
 	})
 }
