@@ -242,7 +242,7 @@ func (repo PostRepository) generateUniqueSlug(baseSlug string, excludeId string)
 	counter := 1
 
 	for {
-		query := sq.Select("EXISTS(SELECT 1 FROM posts WHERE slug = ? AND id != ?)").
+		query := sq.Select("EXISTS(SELECT 1 FROM posts WHERE slug = ?)").
 			PlaceholderFormat(sq.Dollar)
 
 		sql, args, err := query.ToSql()
@@ -251,7 +251,7 @@ func (repo PostRepository) generateUniqueSlug(baseSlug string, excludeId string)
 		}
 
 		var exists bool
-		err = repo.db.QueryRowContext(context.Background(), sql, append(args, slug, excludeId)...).Scan(&exists)
+		err = repo.db.QueryRowContext(context.Background(), sql, append(args, slug)...).Scan(&exists)
 		if err != nil {
 			return "", fmt.Errorf("error checking slug existence: %v", err)
 		}
