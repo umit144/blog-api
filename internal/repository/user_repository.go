@@ -191,7 +191,7 @@ func (repo UserRepository) Delete(id string) error {
 		return fmt.Errorf("error getting rows affected: %v", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("no user found with id %d to delete", id)
+		return fmt.Errorf("no user found with id %s to delete", id)
 	}
 
 	return nil
