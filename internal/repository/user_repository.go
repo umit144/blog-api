@@ -67,7 +67,7 @@ func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
 	err = repo.db.QueryRowContext(context.Background(), sql, args...).
 		Scan(&user.Id, &user.Name, &user.Lastname, &user.Email, &user.Password, &user.CreatedAt)
 	if err != nil {
-		return nil, fmt.Errorf("error executing FindByEmail query: %v", err)
+		return nil, err
 	}
 
 	return &user, nil

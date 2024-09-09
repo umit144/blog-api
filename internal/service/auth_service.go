@@ -1,12 +1,13 @@
 package service
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -85,7 +86,7 @@ func (s *AuthService) Register(user types.User) (*string, *types.User, error) {
 func (s *AuthService) LoginOrRegisterWithGoogle(email, name, googleID, profilePicture string) (*string, *types.User, error) {
 	user, err := s.userRepository.FindByEmail(email)
 	if err != nil {
-		if strings.Contains(err.Error(), "sql: no rows in result set") {
+		if errors.Is(err, sql.ErrNoRows) {
 			newUser := types.User{
 				Email:          email,
 				Name:           name,
