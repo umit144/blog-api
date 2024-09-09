@@ -44,7 +44,20 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	{
 		authRoutes.Post("/login", s.authHandler.LoginHandler)
 		authRoutes.Post("/register", s.authHandler.RegisterHandler)
+		authRoutes.Get("/google/login", s.authHandler.GoogleLoginHandler)
+		authRoutes.Post("/google/callback", s.authHandler.GoogleCallbackHandler)
 	}
+
+	authRoutes.Get("/me", authMiddleware, func(ctx *fiber.Ctx) error {
+		user, ok := ctx.Locals("user").(interface{})
+		if !ok {
+			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Unable to retrieve user information",
+			})
+		}
+
+		return ctx.JSON(user)
+	})
 }
 func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {
 	resp := fiber.Map{

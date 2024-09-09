@@ -6,6 +6,8 @@ import (
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -78,4 +80,43 @@ func (s *AuthService) Register(user types.User) (*string, *types.User, error) {
 	}
 
 	return token, createdUser, nil
+}
+
+func (s *AuthService) LoginOrRegisterWithGoogle(email, name, googleID, profilePicture string) (*string, *types.User, error) {
+	user, err := s.userRepository.FindByEmail(email)
+	if err != nil {
+		if strings.Contains(err.Error(), "sql: no rows in result set") {
+			newUser := types.User{
+				Email:          email,
+				Name:           name,
+				GoogleID:       googleID,
+				ProfilePicture: profilePicture,
+				AuthProvider:   "google",
+				CreatedAt:      time.Now(),
+				UpdatedAt:      time.Now(),
+			}
+			user, err = s.userRepository.Create(newUser)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to create user: %v", err)
+			}
+		} else {
+			return nil, nil, fmt.Errorf("error finding user: %v", err)
+		}
+	} else {
+		user.GoogleID = googleID
+		user.ProfilePicture = profilePicture
+		user.AuthProvider = "google"
+		user.UpdatedAt = time.Now()
+		user, err = s.userRepository.Update(user.Id, *user)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to update user: %v", err)
+		}
+	}
+
+	token, err := user.CreateToken()
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create token: %v", err)
+	}
+
+	return token, user, nil
 }
