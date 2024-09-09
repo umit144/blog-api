@@ -65,7 +65,7 @@ func TestPostRepository_Create(t *testing.T) {
 
 	repo := repository.NewPostRepository(db)
 
-	mock.ExpectQuery("SELECT EXISTS").WithArgs("test-post", "").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectQuery("SELECT EXISTS").WithArgs("test-post").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
 
 	mock.ExpectQuery("INSERT INTO posts").WithArgs("Test Post", "test-post", "Content", "1").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "created_at"}).
@@ -99,7 +99,7 @@ func TestPostRepository_Update(t *testing.T) {
 		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "created_at", "user_id", "name", "lastname", "email"}).
 			AddRow("1", "Old Title", "old-slug", "Old Content", time.Now(), "1", "John", "Doe", "john@example.com"))
 
-	mock.ExpectQuery("SELECT EXISTS").WithArgs("new-slug", "1").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
+	mock.ExpectQuery("SELECT EXISTS").WithArgs("new-slug").WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
 
 	mock.ExpectQuery("UPDATE posts").WithArgs("New Title", "new-slug", "New Content", "1").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "title", "slug", "content", "created_at"}).

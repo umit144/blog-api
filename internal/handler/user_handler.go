@@ -93,7 +93,7 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to update user",
-			"message": fmt.Sprintf("Error updating user with ID %d: %v", id, err),
+			"message": fmt.Sprintf("Error updating user with ID %s: %v", id, err),
 		})
 	}
 
@@ -107,11 +107,11 @@ func (h *UserHandler) DeleteUserHandler(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to delete user",
-			"message": fmt.Sprintf("Error deleting user with ID %d: %v", id, err),
+			"message": fmt.Sprintf("Error deleting user with ID %s: %v", id, err),
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message": fmt.Sprintf("User with ID %d successfully deleted", id),
+		"message": fmt.Sprintf("User with ID %s successfully deleted", id),
 	})
 }
