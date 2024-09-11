@@ -10,6 +10,7 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"os"
+	"time"
 )
 
 type AuthHandler struct {
@@ -53,15 +54,16 @@ func (h *AuthHandler) LoginHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	authenticatedUser := struct {
-		Token string     `json:"token"`
-		User  types.User `json:"user"`
-	}{
-		Token: *token,
-		User:  *user,
-	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    *token,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+	})
 
-	return c.JSON(authenticatedUser)
+	return c.JSON(user)
 }
 
 func (h *AuthHandler) RegisterHandler(c *fiber.Ctx) error {
@@ -89,15 +91,16 @@ func (h *AuthHandler) RegisterHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	authenticatedUser := struct {
-		Token string     `json:"token"`
-		User  types.User `json:"user"`
-	}{
-		Token: *token,
-		User:  *createdUser,
-	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    *token,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+	})
 
-	return c.Status(fiber.StatusCreated).JSON(authenticatedUser)
+	return c.Status(fiber.StatusCreated).JSON(createdUser)
 }
 
 func (h *AuthHandler) GoogleLoginHandler(c *fiber.Ctx) error {
@@ -151,13 +154,14 @@ func (h *AuthHandler) GoogleCallbackHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	authenticatedUser := struct {
-		Token string     `json:"token"`
-		User  types.User `json:"user"`
-	}{
-		Token: *jwtToken,
-		User:  *user,
-	}
+	c.Cookie(&fiber.Cookie{
+		Name:     "access_token",
+		Value:    *jwtToken,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+	})
 
-	return c.JSON(authenticatedUser)
+	return c.JSON(user)
 }

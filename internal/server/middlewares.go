@@ -14,7 +14,7 @@ func (s *FiberServer) RegisterFiberMiddlewares() {
 
 func (s *FiberServer) NewAuthMiddleware() fiber.Handler {
 	return keyauth.New(keyauth.Config{
-		//KeyLookup: "cookie:access_token",
+		KeyLookup: "cookie:access_token",
 		Validator: func(c *fiber.Ctx, token string) (bool, error) {
 			user, err := s.authService.ParseToken(token)
 			if err != nil {
