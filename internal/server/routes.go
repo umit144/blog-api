@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"go-blog/internal/types"
 	"log"
 	"time"
 
@@ -49,7 +50,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	}
 
 	authRoutes.Get("/me", authMiddleware, func(ctx *fiber.Ctx) error {
-		user, ok := ctx.Locals("user").(interface{})
+		user, ok := ctx.Locals("user").(types.User)
 		if !ok {
 			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Unable to retrieve user information",

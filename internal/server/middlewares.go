@@ -20,7 +20,7 @@ func (s *FiberServer) NewAuthMiddleware() fiber.Handler {
 			if err != nil {
 				return false, keyauth.ErrMissingOrMalformedAPIKey
 			}
-			c.Locals("user", user)
+			c.Locals("user", *user)
 			return true, nil
 		},
 	})

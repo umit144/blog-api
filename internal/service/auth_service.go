@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
@@ -120,4 +121,15 @@ func (s *AuthService) LoginOrRegisterWithGoogle(email, name, googleID, profilePi
 	}
 
 	return token, user, nil
+}
+
+func (s *AuthService) GenerateAuthCookie(token string) *fiber.Cookie {
+	return &fiber.Cookie{
+		Name:     "access_token",
+		Value:    token,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HTTPOnly: true,
+		Secure:   true,
+		SameSite: "Lax",
+	}
 }
