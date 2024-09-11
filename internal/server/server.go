@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 	"os"
 
 	"go-blog/internal/database"
@@ -34,6 +35,10 @@ func New() *FiberServer {
 		authService: *service.NewAuthService(db),
 		postHandler: *handler.NewPostHandler(db),
 	}
+
+	server.Use(logger.New(logger.Config{
+		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
+	}))
 
 	server.Use(cors.New(cors.Config{
 		AllowOrigins: os.Getenv("CLIENT_URL"),
