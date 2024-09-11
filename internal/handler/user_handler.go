@@ -8,17 +8,24 @@ import (
 	"go-blog/internal/types"
 )
 
-type UserHandler struct {
+type userHandler struct {
 	userRepository repository.UserRepository
 }
 
-func NewUserHandler(db database.Service) *UserHandler {
-	return &UserHandler{
-		userRepository: *repository.NewUserRepository(db.GetInstance()),
+type UserHandler interface {
+	GetUserHandler(c *fiber.Ctx) error
+	CreateUserHandler(c *fiber.Ctx) error
+	UpdateUserHandler(c *fiber.Ctx) error
+	DeleteUserHandler(c *fiber.Ctx) error
+}
+
+func NewUserHandler(db database.Service) UserHandler {
+	return &userHandler{
+		userRepository: repository.NewUserRepository(db.GetInstance()),
 	}
 }
 
-func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
+func (h *userHandler) GetUserHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	if id != "" {
@@ -43,7 +50,7 @@ func (h *UserHandler) GetUserHandler(c *fiber.Ctx) error {
 	return c.JSON(users)
 }
 
-func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
+func (h *userHandler) CreateUserHandler(c *fiber.Ctx) error {
 	var user types.User
 
 	if err := c.BodyParser(&user); err != nil {
@@ -71,7 +78,7 @@ func (h *UserHandler) CreateUserHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(createdUser)
 }
 
-func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
+func (h *userHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	var user types.User
 	id := c.Params("id")
 
@@ -100,7 +107,7 @@ func (h *UserHandler) UpdateUserHandler(c *fiber.Ctx) error {
 	return c.JSON(updatedUser)
 }
 
-func (h *UserHandler) DeleteUserHandler(c *fiber.Ctx) error {
+func (h *userHandler) DeleteUserHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	var err = h.userRepository.Delete(id)

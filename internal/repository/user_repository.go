@@ -11,15 +11,24 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type UserRepository struct {
+type UserRepository interface {
+	FindAll() ([]types.User, error)
+	FindByEmail(email string) (*types.User, error)
+	FindById(id string) (*types.User, error)
+	Create(user types.User) (*types.User, error)
+	Update(id string, user types.User) (*types.User, error)
+	Delete(id string) error
+}
+
+type userRepository struct {
 	db *sql.DB
 }
 
-func NewUserRepository(db *sql.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *sql.DB) UserRepository {
+	return &userRepository{db: db}
 }
 
-func (repo UserRepository) FindAll() ([]types.User, error) {
+func (repo userRepository) FindAll() ([]types.User, error) {
 	var users []types.User
 
 	sql, args, err := sq.Select("id, name, lastname, email, password, created_at").
@@ -52,7 +61,7 @@ func (repo UserRepository) FindAll() ([]types.User, error) {
 	return users, nil
 }
 
-func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
+func (repo userRepository) FindByEmail(email string) (*types.User, error) {
 	var user types.User
 
 	sql, args, err := sq.Select("id, name, lastname, email, password, created_at").
@@ -73,7 +82,7 @@ func (repo UserRepository) FindByEmail(email string) (*types.User, error) {
 	return &user, nil
 }
 
-func (repo UserRepository) FindById(id string) (*types.User, error) {
+func (repo userRepository) FindById(id string) (*types.User, error) {
 	var user types.User
 
 	sql, args, err := sq.Select("id, name, lastname, email, created_at").
@@ -94,7 +103,7 @@ func (repo UserRepository) FindById(id string) (*types.User, error) {
 	return &user, nil
 }
 
-func (repo UserRepository) Create(user types.User) (*types.User, error) {
+func (repo userRepository) Create(user types.User) (*types.User, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(user.Password), 14)
 	if err != nil {
 		return nil, fmt.Errorf("error hashing password: %v", err)
@@ -123,7 +132,8 @@ func (repo UserRepository) Create(user types.User) (*types.User, error) {
 
 	return &user, nil
 }
-func (repo UserRepository) Update(id string, user types.User) (*types.User, error) {
+
+func (repo userRepository) Update(id string, user types.User) (*types.User, error) {
 	checkSQL, checkArgs, err := sq.Select("id").
 		From("users").
 		Where(sq.And{
@@ -172,7 +182,7 @@ func (repo UserRepository) Update(id string, user types.User) (*types.User, erro
 	return &user, nil
 }
 
-func (repo UserRepository) Delete(id string) error {
+func (repo userRepository) Delete(id string) error {
 	sql, args, err := sq.Delete("users").
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar).

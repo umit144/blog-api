@@ -12,12 +12,19 @@ import (
 	"os"
 )
 
-type AuthHandler struct {
+type AuthHandler interface {
+	LoginHandler(c *fiber.Ctx) error
+	RegisterHandler(c *fiber.Ctx) error
+	GoogleLoginHandler(c *fiber.Ctx) error
+	GoogleCallbackHandler(c *fiber.Ctx) error
+}
+
+type authHandler struct {
 	authService       service.AuthService
 	googleOauthConfig *oauth2.Config
 }
 
-func NewAuthHandler(db database.Service) *AuthHandler {
+func NewAuthHandler(db database.Service) AuthHandler {
 	googleOauthConfig := &oauth2.Config{
 		RedirectURL:  os.Getenv("CLIENT_URL") + os.Getenv("OAUTH_REDIRECT_URL"),
 		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
@@ -26,13 +33,13 @@ func NewAuthHandler(db database.Service) *AuthHandler {
 		Endpoint:     google.Endpoint,
 	}
 
-	return &AuthHandler{
+	return &authHandler{
 		authService:       service.NewAuthService(db),
 		googleOauthConfig: googleOauthConfig,
 	}
 }
 
-func (h *AuthHandler) LoginHandler(c *fiber.Ctx) error {
+func (h *authHandler) LoginHandler(c *fiber.Ctx) error {
 	var payload struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -58,7 +65,7 @@ func (h *AuthHandler) LoginHandler(c *fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-func (h *AuthHandler) RegisterHandler(c *fiber.Ctx) error {
+func (h *authHandler) RegisterHandler(c *fiber.Ctx) error {
 	var user types.User
 
 	if err := c.BodyParser(&user); err != nil {
@@ -88,12 +95,12 @@ func (h *AuthHandler) RegisterHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(createdUser)
 }
 
-func (h *AuthHandler) GoogleLoginHandler(c *fiber.Ctx) error {
+func (h *authHandler) GoogleLoginHandler(c *fiber.Ctx) error {
 	url := h.googleOauthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	return c.Redirect(url, fiber.StatusTemporaryRedirect)
 }
 
-func (h *AuthHandler) GoogleCallbackHandler(c *fiber.Ctx) error {
+func (h *authHandler) GoogleCallbackHandler(c *fiber.Ctx) error {
 	code := c.Query("code")
 	token, err := h.googleOauthConfig.Exchange(c.Context(), code)
 	if err != nil {

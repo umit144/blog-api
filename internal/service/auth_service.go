@@ -31,7 +31,7 @@ type AuthService interface {
 
 func NewAuthService(db database.Service) AuthService {
 	return &authService{
-		userRepository: *repository.NewUserRepository(db.GetInstance()),
+		userRepository: repository.NewUserRepository(db.GetInstance()),
 	}
 }
 

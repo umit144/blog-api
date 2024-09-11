@@ -8,15 +8,24 @@ import (
 	"go-blog/internal/types"
 )
 
-type PostRepository struct {
+type PostRepository interface {
+	FindAll() ([]types.Post, error)
+	FindBySlug(slug string) (*types.Post, error)
+	FindById(id string) (*types.Post, error)
+	Create(post types.Post) (*types.Post, error)
+	Update(id string, post types.Post) (*types.Post, error)
+	Delete(id string) error
+}
+
+type postRepository struct {
 	db *sql.DB
 }
 
-func NewPostRepository(db *sql.DB) *PostRepository {
-	return &PostRepository{db: db}
+func NewPostRepository(db *sql.DB) PostRepository {
+	return &postRepository{db: db}
 }
 
-func (repo PostRepository) FindAll() ([]types.Post, error) {
+func (repo postRepository) FindAll() ([]types.Post, error) {
 	var posts []types.Post
 
 	sql, args, err := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
@@ -63,7 +72,7 @@ func (repo PostRepository) FindAll() ([]types.Post, error) {
 	return posts, nil
 }
 
-func (repo PostRepository) FindBySlug(slug string) (*types.Post, error) {
+func (repo postRepository) FindBySlug(slug string) (*types.Post, error) {
 	query := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
 		From("posts").
 		Join("users ON posts.user_id = users.id").
@@ -97,7 +106,7 @@ func (repo PostRepository) FindBySlug(slug string) (*types.Post, error) {
 	return &post, nil
 }
 
-func (repo PostRepository) FindById(id string) (*types.Post, error) {
+func (repo postRepository) FindById(id string) (*types.Post, error) {
 	query := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
 		From("posts").
 		Join("users ON posts.user_id = users.id").
@@ -131,9 +140,7 @@ func (repo PostRepository) FindById(id string) (*types.Post, error) {
 	return &post, nil
 }
 
-// Create, Update, Delete ve generateUniqueSlug fonksiyonları aynı kalacak
-
-func (repo PostRepository) Create(post types.Post) (*types.Post, error) {
+func (repo postRepository) Create(post types.Post) (*types.Post, error) {
 	slug, err := repo.generateUniqueSlug(post.Slug, "")
 	if err != nil {
 		return nil, fmt.Errorf("error generating unique slug: %v", err)
@@ -168,7 +175,7 @@ func (repo PostRepository) Create(post types.Post) (*types.Post, error) {
 	return &createdPost, nil
 }
 
-func (repo PostRepository) Update(id string, post types.Post) (*types.Post, error) {
+func (repo postRepository) Update(id string, post types.Post) (*types.Post, error) {
 	existingPost, err := repo.FindById(id)
 	if err != nil {
 		return nil, fmt.Errorf("error finding post to update: %v", err)
@@ -210,7 +217,7 @@ func (repo PostRepository) Update(id string, post types.Post) (*types.Post, erro
 	return &updatedPost, nil
 }
 
-func (repo PostRepository) Delete(id string) error {
+func (repo postRepository) Delete(id string) error {
 	deleteQuery := sq.Delete("posts").
 		Where(sq.Eq{"id": id}).
 		PlaceholderFormat(sq.Dollar)
@@ -237,7 +244,7 @@ func (repo PostRepository) Delete(id string) error {
 	return nil
 }
 
-func (repo PostRepository) generateUniqueSlug(baseSlug string, excludeId string) (string, error) {
+func (repo postRepository) generateUniqueSlug(baseSlug string, excludeId string) (string, error) {
 	slug := baseSlug
 	counter := 1
 

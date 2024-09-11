@@ -10,17 +10,24 @@ import (
 	"strings"
 )
 
-type PostHandler struct {
+type PostHandler interface {
+	GetPostHandler(c *fiber.Ctx) error
+	CreatePostHandler(c *fiber.Ctx) error
+	UpdatePostHandler(c *fiber.Ctx) error
+	DeletePostHandler(c *fiber.Ctx) error
+}
+
+type postHandler struct {
 	postRepository repository.PostRepository
 }
 
-func NewPostHandler(db database.Service) *PostHandler {
-	return &PostHandler{
-		postRepository: *repository.NewPostRepository(db.GetInstance()),
+func NewPostHandler(db database.Service) PostHandler {
+	return &postHandler{
+		postRepository: repository.NewPostRepository(db.GetInstance()),
 	}
 }
 
-func (h *PostHandler) GetPostHandler(c *fiber.Ctx) error {
+func (h *postHandler) GetPostHandler(c *fiber.Ctx) error {
 	slug := c.Params("slug")
 
 	if slug != "" {
@@ -45,7 +52,7 @@ func (h *PostHandler) GetPostHandler(c *fiber.Ctx) error {
 	return c.JSON(posts)
 }
 
-func (h *PostHandler) CreatePostHandler(c *fiber.Ctx) error {
+func (h *postHandler) CreatePostHandler(c *fiber.Ctx) error {
 	var post types.Post
 
 	if err := c.BodyParser(&post); err != nil {
@@ -88,7 +95,7 @@ func (h *PostHandler) CreatePostHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(createdPost)
 }
 
-func (h *PostHandler) UpdatePostHandler(c *fiber.Ctx) error {
+func (h *postHandler) UpdatePostHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 	var post types.Post
 
@@ -144,7 +151,7 @@ func (h *PostHandler) UpdatePostHandler(c *fiber.Ctx) error {
 	return c.JSON(updatedPost)
 }
 
-func (h *PostHandler) DeletePostHandler(c *fiber.Ctx) error {
+func (h *postHandler) DeletePostHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 
 	user, ok := c.Locals("user").(*types.User)
