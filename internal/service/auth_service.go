@@ -17,17 +17,25 @@ import (
 
 var secretKey []byte = []byte(os.Getenv("JWT_SECRET"))
 
-type AuthService struct {
+type authService struct {
 	userRepository repository.UserRepository
 }
 
-func NewAuthService(db database.Service) *AuthService {
-	return &AuthService{
+type AuthService interface {
+	ParseToken(tokenString string) (*types.User, error)
+	Login(email string, password string) (*string, *types.User, error)
+	Register(user types.User) (*string, *types.User, error)
+	LoginOrRegisterWithGoogle(email, name, googleID, profilePicture string) (*string, *types.User, error)
+	GenerateAuthCookie(token string) *fiber.Cookie
+}
+
+func NewAuthService(db database.Service) AuthService {
+	return &authService{
 		userRepository: *repository.NewUserRepository(db.GetInstance()),
 	}
 }
 
-func (s *AuthService) ParseToken(tokenString string) (*types.User, error) {
+func (s *authService) ParseToken(tokenString string) (*types.User, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		return secretKey, nil
 	})
@@ -51,7 +59,7 @@ func (s *AuthService) ParseToken(tokenString string) (*types.User, error) {
 	return user, nil
 }
 
-func (s *AuthService) Login(email string, password string) (*string, *types.User, error) {
+func (s *authService) Login(email string, password string) (*string, *types.User, error) {
 	user, err := s.userRepository.FindByEmail(email)
 	if err != nil {
 		return nil, nil, err
@@ -70,7 +78,7 @@ func (s *AuthService) Login(email string, password string) (*string, *types.User
 	return tokenString, user, nil
 }
 
-func (s *AuthService) Register(user types.User) (*string, *types.User, error) {
+func (s *authService) Register(user types.User) (*string, *types.User, error) {
 	createdUser, err := s.userRepository.Create(user)
 	if err != nil {
 		return nil, nil, err
@@ -84,7 +92,7 @@ func (s *AuthService) Register(user types.User) (*string, *types.User, error) {
 	return token, createdUser, nil
 }
 
-func (s *AuthService) LoginOrRegisterWithGoogle(email, name, googleID, profilePicture string) (*string, *types.User, error) {
+func (s *authService) LoginOrRegisterWithGoogle(email, name, googleID, profilePicture string) (*string, *types.User, error) {
 	user, err := s.userRepository.FindByEmail(email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -123,7 +131,7 @@ func (s *AuthService) LoginOrRegisterWithGoogle(email, name, googleID, profilePi
 	return token, user, nil
 }
 
-func (s *AuthService) GenerateAuthCookie(token string) *fiber.Cookie {
+func (s *authService) GenerateAuthCookie(token string) *fiber.Cookie {
 	return &fiber.Cookie{
 		Name:     "access_token",
 		Value:    token,

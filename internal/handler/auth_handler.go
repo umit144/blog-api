@@ -27,7 +27,7 @@ func NewAuthHandler(db database.Service) *AuthHandler {
 	}
 
 	return &AuthHandler{
-		authService:       *service.NewAuthService(db),
+		authService:       service.NewAuthService(db),
 		googleOauthConfig: googleOauthConfig,
 	}
 }

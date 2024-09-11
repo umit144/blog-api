@@ -32,7 +32,7 @@ func New() *FiberServer {
 		db:          db,
 		userHandler: *handler.NewUserHandler(db),
 		authHandler: *handler.NewAuthHandler(db),
-		authService: *service.NewAuthService(db),
+		authService: service.NewAuthService(db),
 		postHandler: *handler.NewPostHandler(db),
 	}
 
