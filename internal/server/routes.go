@@ -35,7 +35,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	postRoutes.Use(authMiddleware)
 	{
 		postRoutes.Get("/", s.postHandler.GetPostHandler)
-		postRoutes.Get("/:slug", s.postHandler.GetPostHandler)
+		postRoutes.Get("/:slugOrId", s.postHandler.GetPostHandler)
 		postRoutes.Post("/", s.postHandler.CreatePostHandler)
 		postRoutes.Put("/:id", s.postHandler.UpdatePostHandler)
 		postRoutes.Delete("/:id", s.postHandler.DeletePostHandler)

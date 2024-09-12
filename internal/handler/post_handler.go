@@ -3,6 +3,7 @@ package handler
 import (
 	"fmt"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
@@ -28,16 +29,30 @@ func NewPostHandler(db database.Service) PostHandler {
 }
 
 func (h *postHandler) GetPostHandler(c *fiber.Ctx) error {
-	slug := c.Params("slug")
+	slugOrId := c.Params("slugOrId")
 
-	if slug != "" {
-		post, err := h.postRepository.FindBySlug(slug)
-		if err != nil {
-			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-				"error":   "Post not found",
-				"message": fmt.Sprintf("No post found with slug: %s", slug),
-			})
+	if slugOrId != "" {
+		var post *types.Post
+
+		_, err := uuid.Parse(slugOrId)
+		if err == nil {
+			post, err = h.postRepository.FindById(slugOrId)
+			if err != nil {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+					"error":   "Post not found",
+					"message": fmt.Sprintf("No post found with id: %s", slugOrId),
+				})
+			}
+		} else {
+			post, err = h.postRepository.FindBySlug(slugOrId)
+			if err != nil {
+				return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+					"error":   "Post not found",
+					"message": fmt.Sprintf("No post found with slug: %s", slugOrId),
+				})
+			}
 		}
+
 		return c.JSON(post)
 	}
 
