@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"go-blog/internal/types"
 	"log"
 	"time"
@@ -19,7 +20,17 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	s.App.Get("/websocket", websocket.New(s.websocketHandler))
 
 	api := s.App.Group("/api")
-	authMiddleware := s.NewAuthMiddleware()
+	authMiddleware := keyauth.New(keyauth.Config{
+		KeyLookup: "cookie:access_token",
+		Validator: func(c *fiber.Ctx, token string) (bool, error) {
+			user, err := s.authService.ParseToken(token)
+			if err != nil {
+				return false, keyauth.ErrMissingOrMalformedAPIKey
+			}
+			c.Locals("user", *user)
+			return true, nil
+		},
+	})
 
 	userRoutes := api.Group("/user")
 	userRoutes.Use(authMiddleware)
