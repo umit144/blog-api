@@ -40,7 +40,7 @@ func New() *FiberServer {
 	}
 
 	server.Use(logger.New(logger.Config{
-		Format: "[${time}] ${status} - ${latency} ${method} ${path}\n",
+		Format: "[${time}] ${status} - ${latency} ${method} ${url}\n",
 	}))
 
 	server.Use(cors.New(cors.Config{
