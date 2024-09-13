@@ -84,7 +84,7 @@ func (h *postHandler) CreatePostHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	user, ok := c.Locals("user").(*types.User)
+	user, ok := c.Locals("user").(types.User)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User not authenticated",
@@ -128,7 +128,7 @@ func (h *postHandler) UpdatePostHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	user, ok := c.Locals("user").(*types.User)
+	user, ok := c.Locals("user").(types.User)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User not authenticated",
@@ -169,7 +169,7 @@ func (h *postHandler) UpdatePostHandler(c *fiber.Ctx) error {
 func (h *postHandler) DeletePostHandler(c *fiber.Ctx) error {
 	id := c.Params("id")
 
-	user, ok := c.Locals("user").(*types.User)
+	user, ok := c.Locals("user").(types.User)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 			"error": "User not authenticated",

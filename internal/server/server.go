@@ -41,8 +41,10 @@ func New() *FiberServer {
 	}))
 
 	server.Use(cors.New(cors.Config{
-		AllowOrigins: os.Getenv("CLIENT_URL"),
-		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowOrigins:     os.Getenv("CLIENT_URL"),
+		AllowMethods:     "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept",
+		AllowCredentials: true,
 	}))
 
 	return server

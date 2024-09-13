@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"github.com/go-playground/validator/v10"
 	"time"
 )
@@ -12,6 +13,17 @@ type Post struct {
 	Content   string    `json:"content,omitempty"  validate:"required,min=3"`
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 	Author    User      `json:"author,omitempty" validate:"-"`
+}
+
+func (p Post) MarshalJSON() ([]byte, error) {
+	type Alias Post
+	return json.Marshal(&struct {
+		CreatedAt string `json:"createdAt,omitempty"`
+		*Alias
+	}{
+		CreatedAt: p.CreatedAt.Format("02/01/2006"),
+		Alias:     (*Alias)(&p),
+	})
 }
 
 func (p Post) Validate() map[string]string {

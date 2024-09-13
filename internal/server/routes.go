@@ -14,10 +14,7 @@ import (
 )
 
 func (s *FiberServer) RegisterFiberRoutes() {
-	// Main routes
 	s.App.Get("/", s.HelloWorldHandler)
-	s.App.Get("/health", s.healthHandler)
-	s.App.Get("/websocket", websocket.New(s.websocketHandler))
 
 	api := s.App.Group("/api")
 	authMiddleware := keyauth.New(keyauth.Config{
@@ -31,6 +28,9 @@ func (s *FiberServer) RegisterFiberRoutes() {
 			return true, nil
 		},
 	})
+
+	api.Get("/health", s.healthHandler)
+	api.Get("/websocket", websocket.New(s.websocketHandler))
 
 	userRoutes := api.Group("/user")
 	userRoutes.Use(authMiddleware)
