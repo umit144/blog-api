@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	sq "github.com/Masterminds/squirrel"
 	"go-blog/internal/types"
+
+	sq "github.com/Masterminds/squirrel"
 )
 
 type PostRepository interface {
@@ -16,6 +17,10 @@ type PostRepository interface {
 	Create(post types.Post) (*types.Post, error)
 	Update(id string, post types.Post) (*types.Post, error)
 	Delete(id string) error
+	AssignCategoryToPost(postId string, categoryId string) error
+	UnassignCategoryFromPost(postId string, categoryId string) error
+	GetCategoriesForPost(postId string) ([]types.Category, error)
+	UpdatePostCategories(postId string, categoryIds []string) error
 }
 
 type postRepository struct {
@@ -342,4 +347,106 @@ func (repo postRepository) generateUniqueSlug(baseSlug string, excludeId string)
 	}
 
 	return slug, nil
+}
+
+func (repo postRepository) AssignCategoryToPost(postId string, categoryId string) error {
+	query := sq.Insert("post_categories").
+		Columns("post_id", "category_id").
+		Values(postId, categoryId).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("error creating SQL for AssignCategoryToPost: %v", err)
+	}
+
+	_, err = repo.db.ExecContext(context.Background(), sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing AssignCategoryToPost query: %v", err)
+	}
+
+	return nil
+}
+
+func (repo postRepository) UnassignCategoryFromPost(postId string, categoryId string) error {
+	query := sq.Delete("post_categories").
+		Where(sq.Eq{"post_id": postId, "category_id": categoryId}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("error creating SQL for UnassignCategoryFromPost: %v", err)
+	}
+
+	_, err = repo.db.ExecContext(context.Background(), sql, args...)
+	if err != nil {
+		return fmt.Errorf("error executing UnassignCategoryFromPost query: %v", err)
+	}
+
+	return nil
+}
+
+func (repo postRepository) GetCategoriesForPost(postId string) ([]types.Category, error) {
+	query := sq.Select("c.id", "c.title", "c.slug", "c.created_at").
+		From("categories c").
+		Join("post_categories pc ON c.id = pc.category_id").
+		Where(sq.Eq{"pc.post_id": postId}).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := query.ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("error creating SQL for GetCategoriesForPost: %v", err)
+	}
+
+	rows, err := repo.db.QueryContext(context.Background(), sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error executing GetCategoriesForPost query: %v", err)
+	}
+	defer rows.Close()
+
+	var categories []types.Category
+	for rows.Next() {
+		var category types.Category
+		err := rows.Scan(&category.Id, &category.Title, &category.Slug, &category.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning row in GetCategoriesForPost: %v", err)
+		}
+		categories = append(categories, category)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error after iterating rows in GetCategoriesForPost: %v", err)
+	}
+
+	return categories, nil
+}
+
+func (repo postRepository) UpdatePostCategories(postId string, categoryIds []string) error {
+	tx, err := repo.db.BeginTx(context.Background(), nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %v", err)
+	}
+
+	// Remove all existing categories for the post
+	_, err = tx.ExecContext(context.Background(), "DELETE FROM post_categories WHERE post_id = $1", postId)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error removing existing categories: %v", err)
+	}
+
+	// Add new categories
+	for _, categoryId := range categoryIds {
+		_, err = tx.ExecContext(context.Background(), "INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)", postId, categoryId)
+		if err != nil {
+			tx.Rollback()
+			return fmt.Errorf("error adding new category: %v", err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("error committing transaction: %v", err)
+	}
+
+	return nil
 }

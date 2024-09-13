@@ -18,6 +18,10 @@ type PostHandler interface {
 	CreatePostHandler(c *fiber.Ctx) error
 	UpdatePostHandler(c *fiber.Ctx) error
 	DeletePostHandler(c *fiber.Ctx) error
+	AssignCategoryToPostHandler(c *fiber.Ctx) error
+	UnassignCategoryFromPostHandler(c *fiber.Ctx) error
+	GetCategoriesForPostHandler(c *fiber.Ctx) error
+	UpdatePostCategoriesHandler(c *fiber.Ctx) error
 }
 
 type postHandler struct {
@@ -220,4 +224,73 @@ func (h *postHandler) DeletePostHandler(c *fiber.Ctx) error {
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *postHandler) AssignCategoryToPostHandler(c *fiber.Ctx) error {
+	postId := c.Params("postId")
+	categoryId := c.Params("categoryId")
+
+	err := h.postRepository.AssignCategoryToPost(postId, categoryId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Failed to assign category to post",
+			"message": fmt.Sprintf("Error occurred while assigning category: %v", err),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusCreated)
+}
+
+func (h *postHandler) UnassignCategoryFromPostHandler(c *fiber.Ctx) error {
+	postId := c.Params("postId")
+	categoryId := c.Params("categoryId")
+
+	err := h.postRepository.UnassignCategoryFromPost(postId, categoryId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Failed to unassign category from post",
+			"message": fmt.Sprintf("Error occurred while unassigning category: %v", err),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
+func (h *postHandler) GetCategoriesForPostHandler(c *fiber.Ctx) error {
+	postId := c.Params("postId")
+
+	categories, err := h.postRepository.GetCategoriesForPost(postId)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Failed to get categories for post",
+			"message": fmt.Sprintf("Error occurred while fetching categories: %v", err),
+		})
+	}
+
+	return c.JSON(categories)
+}
+
+func (h *postHandler) UpdatePostCategoriesHandler(c *fiber.Ctx) error {
+	postId := c.Params("postId")
+
+	var request struct {
+		CategoryIds []string `json:"categoryIds"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error":   "Invalid request payload",
+			"message": fmt.Sprintf("Error parsing request body: %v", err),
+		})
+	}
+
+	err := h.postRepository.UpdatePostCategories(postId, request.CategoryIds)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error":   "Failed to update post categories",
+			"message": fmt.Sprintf("Error occurred while updating categories: %v", err),
+		})
+	}
+
+	return c.SendStatus(fiber.StatusOK)
 }

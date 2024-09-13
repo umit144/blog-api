@@ -51,6 +51,10 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		postRoutes.Post("/", s.postHandler.CreatePostHandler)
 		postRoutes.Put("/:id", s.postHandler.UpdatePostHandler)
 		postRoutes.Delete("/:id", s.postHandler.DeletePostHandler)
+		postRoutes.Post("/:postId/categories/:categoryId", s.postHandler.AssignCategoryToPostHandler)
+		postRoutes.Delete("/:postId/categories/:categoryId", s.postHandler.UnassignCategoryFromPostHandler)
+		postRoutes.Get("/:postId/categories", s.postHandler.GetCategoriesForPostHandler)
+		postRoutes.Put("/:postId/categories", s.postHandler.UpdatePostCategoriesHandler)
 	}
 
 	categoryRoutes := api.Group("/category")
