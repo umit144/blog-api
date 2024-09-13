@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"os"
 	"time"
+
+	"github.com/gofiber/fiber/v2"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
