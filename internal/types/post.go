@@ -2,17 +2,19 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/go-playground/validator/v10"
 	"time"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Post struct {
-	Id        string    `json:"id,omitempty"`
-	Title     string    `json:"title,omitempty" validate:"required,min=3,max=50"`
-	Slug      string    `json:"slug,omitempty"`
-	Content   string    `json:"content,omitempty"  validate:"required,min=3"`
-	CreatedAt time.Time `json:"createdAt,omitempty"`
-	Author    User      `json:"author,omitempty" validate:"-"`
+	Id         string     `json:"id,omitempty"`
+	Title      string     `json:"title,omitempty" validate:"required,min=3,max=50"`
+	Slug       string     `json:"slug,omitempty"`
+	Content    string     `json:"content,omitempty"  validate:"required,min=3"`
+	CreatedAt  time.Time  `json:"createdAt,omitempty"`
+	Author     User       `json:"author,omitempty" validate:"-"`
+	Categories []Category `json:"categories" validate:"-"`
 }
 
 func (p Post) MarshalJSON() ([]byte, error) {

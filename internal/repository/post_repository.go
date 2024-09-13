@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go-blog/internal/types"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -34,9 +35,11 @@ func NewPostRepository(db *sql.DB) PostRepository {
 func (repo postRepository) FindAll() ([]types.Post, error) {
 	var posts []types.Post
 
-	sql, args, err := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
+	sql, args, err := sq.Select("DISTINCT posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email, categories.id, categories.title, categories.slug, categories.created_at").
 		From("posts").
 		Join("users ON posts.user_id = users.id").
+		LeftJoin("post_categories ON posts.id = post_categories.post_id").
+		LeftJoin("categories ON post_categories.category_id = categories.id").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
 
@@ -50,9 +53,13 @@ func (repo postRepository) FindAll() ([]types.Post, error) {
 	}
 	defer rows.Close()
 
+	postMap := make(map[string]*types.Post)
 	for rows.Next() {
 		var post types.Post
 		var user types.User
+		var categoryId, categoryTitle, categorySlug *string
+		var categoryCreatedAt *time.Time
+
 		err := rows.Scan(
 			&post.Id,
 			&post.Title,
@@ -63,16 +70,41 @@ func (repo postRepository) FindAll() ([]types.Post, error) {
 			&user.Name,
 			&user.Lastname,
 			&user.Email,
+			&categoryId,
+			&categoryTitle,
+			&categorySlug,
+			&categoryCreatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning row in FindAll: %v", err)
 		}
 		post.Author = user
-		posts = append(posts, post)
+
+		if categoryId != nil {
+			category := types.Category{
+				Id:        *categoryId,
+				Title:     *categoryTitle,
+				Slug:      *categorySlug,
+				CreatedAt: *categoryCreatedAt,
+			}
+
+			if existingPost, ok := postMap[post.Id]; ok {
+				existingPost.Categories = append(existingPost.Categories, category)
+			} else {
+				post.Categories = []types.Category{category}
+				postMap[post.Id] = &post
+			}
+		} else if _, ok := postMap[post.Id]; !ok {
+			postMap[post.Id] = &post
+		}
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error after iterating rows in FindAll: %v", err)
+	}
+
+	for _, post := range postMap {
+		posts = append(posts, *post)
 	}
 
 	return posts, nil
@@ -82,8 +114,7 @@ func (repo postRepository) FindAllPaginated(page, limit int) ([]types.Post, int,
 	var posts []types.Post
 	var totalCount int
 
-	// First, get the total count of posts
-	countSql, countArgs, err := sq.Select("COUNT(*)").
+	countSql, countArgs, err := sq.Select("COUNT(DISTINCT posts.id)").
 		From("posts").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
@@ -97,12 +128,13 @@ func (repo postRepository) FindAllPaginated(page, limit int) ([]types.Post, int,
 		return nil, 0, fmt.Errorf("error executing count query: %v", err)
 	}
 
-	// Now, get the paginated posts
 	offset := (page - 1) * limit
 
-	sql, args, err := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
+	sql, args, err := sq.Select("DISTINCT posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email, categories.id, categories.title, categories.slug, categories.created_at").
 		From("posts").
 		Join("users ON posts.user_id = users.id").
+		LeftJoin("post_categories ON posts.id = post_categories.post_id").
+		LeftJoin("categories ON post_categories.category_id = categories.id").
 		OrderBy("posts.created_at DESC").
 		Limit(uint64(limit)).
 		Offset(uint64(offset)).
@@ -119,9 +151,13 @@ func (repo postRepository) FindAllPaginated(page, limit int) ([]types.Post, int,
 	}
 	defer rows.Close()
 
+	postMap := make(map[string]*types.Post)
 	for rows.Next() {
 		var post types.Post
 		var user types.User
+		var categoryId, categoryTitle, categorySlug *string
+		var categoryCreatedAt *time.Time
+
 		err := rows.Scan(
 			&post.Id,
 			&post.Title,
@@ -132,87 +168,200 @@ func (repo postRepository) FindAllPaginated(page, limit int) ([]types.Post, int,
 			&user.Name,
 			&user.Lastname,
 			&user.Email,
+			&categoryId,
+			&categoryTitle,
+			&categorySlug,
+			&categoryCreatedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error scanning row in FindAllPaginated: %v", err)
 		}
 		post.Author = user
-		posts = append(posts, post)
+
+		if categoryId != nil {
+			category := types.Category{
+				Id:        *categoryId,
+				Title:     *categoryTitle,
+				Slug:      *categorySlug,
+				CreatedAt: *categoryCreatedAt,
+			}
+
+			if existingPost, ok := postMap[post.Id]; ok {
+				existingPost.Categories = append(existingPost.Categories, category)
+			} else {
+				post.Categories = []types.Category{category}
+				postMap[post.Id] = &post
+			}
+		} else if _, ok := postMap[post.Id]; !ok {
+			postMap[post.Id] = &post
+		}
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("error after iterating rows in FindAllPaginated: %v", err)
 	}
 
+	for _, post := range postMap {
+		posts = append(posts, *post)
+	}
+
 	return posts, totalCount, nil
 }
 
 func (repo postRepository) FindBySlug(slug string) (*types.Post, error) {
-	query := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
+	query := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email, categories.id, categories.title, categories.slug, categories.created_at").
 		From("posts").
 		Join("users ON posts.user_id = users.id").
-		PlaceholderFormat(sq.Dollar).
-		Where(sq.Eq{"posts.slug": slug})
+		LeftJoin("post_categories ON posts.id = post_categories.post_id").
+		LeftJoin("categories ON post_categories.category_id = categories.id").
+		Where(sq.Eq{"posts.slug": slug}).
+		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("error creating SQL for FindBySlug: %v", err)
 	}
 
-	var post types.Post
-	var user types.User
-	err = repo.db.QueryRowContext(context.Background(), sql, args...).Scan(
-		&post.Id,
-		&post.Title,
-		&post.Slug,
-		&post.Content,
-		&post.CreatedAt,
-		&user.Id,
-		&user.Name,
-		&user.Lastname,
-		&user.Email,
-	)
-
+	rows, err := repo.db.QueryContext(context.Background(), sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error executing FindBySlug query: %v", err)
 	}
+	defer rows.Close()
 
-	post.Author = user
-	return &post, nil
+	var post *types.Post
+	for rows.Next() {
+		if post == nil {
+			post = &types.Post{}
+			var user types.User
+			var category types.Category
+			err := rows.Scan(
+				&post.Id,
+				&post.Title,
+				&post.Slug,
+				&post.Content,
+				&post.CreatedAt,
+				&user.Id,
+				&user.Name,
+				&user.Lastname,
+				&user.Email,
+				&category.Id,
+				&category.Title,
+				&category.Slug,
+				&category.CreatedAt,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("error scanning row in FindBySlug: %v", err)
+			}
+			post.Author = user
+			if category.Id != "" {
+				post.Categories = append(post.Categories, category)
+			}
+		} else {
+			var category types.Category
+			err := rows.Scan(
+				&category.Id,
+				&category.Title,
+				&category.Slug,
+				&category.CreatedAt,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("error scanning additional category in FindBySlug: %v", err)
+			}
+			if category.Id != "" {
+				post.Categories = append(post.Categories, category)
+			}
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error after iterating rows in FindBySlug: %v", err)
+	}
+
+	if post == nil {
+		return nil, fmt.Errorf("no post found with slug: %s", slug)
+	}
+
+	return post, nil
 }
 
 func (repo postRepository) FindById(id string) (*types.Post, error) {
-	query := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
+	query := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email, categories.id, categories.title, categories.slug, categories.created_at").
 		From("posts").
 		Join("users ON posts.user_id = users.id").
-		PlaceholderFormat(sq.Dollar).
-		Where(sq.Eq{"posts.id": id})
+		LeftJoin("post_categories ON posts.id = post_categories.post_id").
+		LeftJoin("categories ON post_categories.category_id = categories.id").
+		Where(sq.Eq{"posts.id": id}).
+		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := query.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("error creating SQL for FindById: %v", err)
 	}
 
-	var post types.Post
-	var user types.User
-	err = repo.db.QueryRowContext(context.Background(), sql, args...).Scan(
-		&post.Id,
-		&post.Title,
-		&post.Slug,
-		&post.Content,
-		&post.CreatedAt,
-		&user.Id,
-		&user.Name,
-		&user.Lastname,
-		&user.Email,
-	)
-
+	rows, err := repo.db.QueryContext(context.Background(), sql, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error executing FindById query: %v", err)
 	}
+	defer rows.Close()
 
-	post.Author = user
-	return &post, nil
+	var post *types.Post
+	for rows.Next() {
+		if post == nil {
+			post = &types.Post{}
+			var user types.User
+			var category types.Category
+
+			err := rows.Scan(
+				&post.Id,
+				&post.Title,
+				&post.Slug,
+				&post.Content,
+				&post.CreatedAt,
+				&user.Id,
+				&user.Name,
+				&user.Lastname,
+				&user.Email,
+				&category.Id,
+				&category.Title,
+				&category.Slug,
+				&category.CreatedAt,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("error scanning row in FindById: %v", err)
+			}
+			post.Author = user
+
+			if category.Id != "" {
+				post.Categories = append(post.Categories, category)
+			}
+		} else {
+			var category types.Category
+
+			err := rows.Scan(
+				&category.Id,
+				&category.Title,
+				&category.Slug,
+				&category.CreatedAt,
+			)
+			if err != nil {
+				return nil, fmt.Errorf("error scanning additional category in FindById: %v", err)
+			}
+
+			if category.Id != "" {
+				post.Categories = append(post.Categories, category)
+			}
+		}
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error after iterating rows in FindById: %v", err)
+	}
+
+	if post == nil {
+		return nil, fmt.Errorf("no post found with id: %s", id)
+	}
+
+	return post, nil
 }
 
 func (repo postRepository) Create(post types.Post) (*types.Post, error) {
@@ -427,14 +576,12 @@ func (repo postRepository) UpdatePostCategories(postId string, categoryIds []str
 		return fmt.Errorf("error starting transaction: %v", err)
 	}
 
-	// Remove all existing categories for the post
 	_, err = tx.ExecContext(context.Background(), "DELETE FROM post_categories WHERE post_id = $1", postId)
 	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error removing existing categories: %v", err)
 	}
 
-	// Add new categories
 	for _, categoryId := range categoryIds {
 		_, err = tx.ExecContext(context.Background(), "INSERT INTO post_categories (post_id, category_id) VALUES ($1, $2)", postId, categoryId)
 		if err != nil {
