@@ -1,10 +1,11 @@
 package server
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
-	"os"
 
 	"go-blog/internal/database"
 	"go-blog/internal/handler"
@@ -14,11 +15,12 @@ import (
 type FiberServer struct {
 	*fiber.App
 
-	db          database.Service
-	userHandler handler.UserHandler
-	authHandler handler.AuthHandler
-	authService service.AuthService
-	postHandler handler.PostHandler
+	db              database.Service
+	userHandler     handler.UserHandler
+	authHandler     handler.AuthHandler
+	authService     service.AuthService
+	postHandler     handler.PostHandler
+	categoryHandler handler.CategoryHandler
 }
 
 func New() *FiberServer {
@@ -29,11 +31,12 @@ func New() *FiberServer {
 			AppName:      "go-blog",
 		}),
 
-		db:          db,
-		userHandler: handler.NewUserHandler(db),
-		authHandler: handler.NewAuthHandler(db),
-		authService: service.NewAuthService(db),
-		postHandler: handler.NewPostHandler(db),
+		db:              db,
+		userHandler:     handler.NewUserHandler(db),
+		authHandler:     handler.NewAuthHandler(db),
+		authService:     service.NewAuthService(db),
+		postHandler:     handler.NewPostHandler(db),
+		categoryHandler: handler.NewCategoryHandler(db),
 	}
 
 	server.Use(logger.New(logger.Config{

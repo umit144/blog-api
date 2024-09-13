@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 	"fmt"
-	"github.com/gofiber/fiber/v2/middleware/keyauth"
 	"go-blog/internal/types"
 	"log"
 	"time"
+
+	"github.com/gofiber/fiber/v2/middleware/keyauth"
 
 	"github.com/gofiber/fiber/v2"
 
@@ -50,6 +51,16 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		postRoutes.Post("/", s.postHandler.CreatePostHandler)
 		postRoutes.Put("/:id", s.postHandler.UpdatePostHandler)
 		postRoutes.Delete("/:id", s.postHandler.DeletePostHandler)
+	}
+
+	categoryRoutes := api.Group("/category")
+	categoryRoutes.Use(authMiddleware)
+	{
+		categoryRoutes.Get("/", s.categoryHandler.GetCategoryHandler)
+		categoryRoutes.Get("/:slugOrId", s.categoryHandler.GetCategoryHandler)
+		categoryRoutes.Post("/", s.categoryHandler.CreateCategoryHandler)
+		categoryRoutes.Put("/:id", s.categoryHandler.UpdateCategoryHandler)
+		categoryRoutes.Delete("/:id", s.categoryHandler.DeleteCategoryHandler)
 	}
 
 	authRoutes := api.Group("/auth")

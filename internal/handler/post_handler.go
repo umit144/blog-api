@@ -2,13 +2,15 @@ package handler
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"regexp"
+	"strconv"
 	"strings"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 type PostHandler interface {
@@ -56,7 +58,17 @@ func (h *postHandler) GetPostHandler(c *fiber.Ctx) error {
 		return c.JSON(post)
 	}
 
-	posts, err := h.postRepository.FindAll()
+	page, _ := strconv.Atoi(c.Query("page", "1"))
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+
+	posts, totalCount, err := h.postRepository.FindAllPaginated(page, limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error":   "Failed to retrieve posts",
@@ -64,7 +76,17 @@ func (h *postHandler) GetPostHandler(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.JSON(posts)
+	totalPages := (totalCount + limit - 1) / limit
+
+	return c.JSON(fiber.Map{
+		"meta": fiber.Map{
+			"page":       page,
+			"limit":      limit,
+			"totalCount": totalCount,
+			"totalPages": totalPages,
+		},
+		"data": posts,
+	})
 }
 
 func (h *postHandler) CreatePostHandler(c *fiber.Ctx) error {

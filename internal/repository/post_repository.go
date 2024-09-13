@@ -10,6 +10,7 @@ import (
 
 type PostRepository interface {
 	FindAll() ([]types.Post, error)
+	FindAllPaginated(page, limit int) ([]types.Post, int, error)
 	FindBySlug(slug string) (*types.Post, error)
 	FindById(id string) (*types.Post, error)
 	Create(post types.Post) (*types.Post, error)
@@ -70,6 +71,75 @@ func (repo postRepository) FindAll() ([]types.Post, error) {
 	}
 
 	return posts, nil
+}
+
+func (repo postRepository) FindAllPaginated(page, limit int) ([]types.Post, int, error) {
+	var posts []types.Post
+	var totalCount int
+
+	// First, get the total count of posts
+	countSql, countArgs, err := sq.Select("COUNT(*)").
+		From("posts").
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("error creating SQL for count query: %v", err)
+	}
+
+	err = repo.db.QueryRowContext(context.Background(), countSql, countArgs...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error executing count query: %v", err)
+	}
+
+	// Now, get the paginated posts
+	offset := (page - 1) * limit
+
+	sql, args, err := sq.Select("posts.id, posts.title, posts.slug, posts.content, posts.created_at, users.id, users.name, users.lastname, users.email").
+		From("posts").
+		Join("users ON posts.user_id = users.id").
+		OrderBy("posts.created_at DESC").
+		Limit(uint64(limit)).
+		Offset(uint64(offset)).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+
+	if err != nil {
+		return nil, 0, fmt.Errorf("error creating SQL for FindAllPaginated: %v", err)
+	}
+
+	rows, err := repo.db.QueryContext(context.Background(), sql, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error executing FindAllPaginated query: %v", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var post types.Post
+		var user types.User
+		err := rows.Scan(
+			&post.Id,
+			&post.Title,
+			&post.Slug,
+			&post.Content,
+			&post.CreatedAt,
+			&user.Id,
+			&user.Name,
+			&user.Lastname,
+			&user.Email,
+		)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error scanning row in FindAllPaginated: %v", err)
+		}
+		post.Author = user
+		posts = append(posts, post)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error after iterating rows in FindAllPaginated: %v", err)
+	}
+
+	return posts, totalCount, nil
 }
 
 func (repo postRepository) FindBySlug(slug string) (*types.Post, error) {
