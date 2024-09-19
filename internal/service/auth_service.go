@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/keyauth"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
@@ -28,6 +29,7 @@ type AuthService interface {
 	Register(user types.User) (*string, *types.User, error)
 	LoginOrRegisterWithGoogle(email, name, googleID, profilePicture string) (*string, *types.User, error)
 	GenerateAuthCookie(token string) *fiber.Cookie
+	ValidateSession(c *fiber.Ctx, token string) (bool, error)
 }
 
 func NewAuthService(db database.Service) AuthService {
@@ -141,4 +143,13 @@ func (s *authService) GenerateAuthCookie(token string) *fiber.Cookie {
 		Secure:   true,
 		SameSite: "Lax",
 	}
+}
+
+func (s *authService) ValidateSession(c *fiber.Ctx, token string) (bool, error) {
+	user, err := s.ParseToken(token)
+	if err != nil {
+		return false, keyauth.ErrMissingOrMalformedAPIKey
+	}
+	c.Locals("user", *user)
+	return true, nil
 }

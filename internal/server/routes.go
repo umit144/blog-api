@@ -18,21 +18,9 @@ func (s *FiberServer) RegisterFiberRoutes() {
 
 	api := s.App.Group("/api")
 	authMiddleware := keyauth.New(keyauth.Config{
-		KeyLookup: "cookie:access_token",
-		Validator: func(c *fiber.Ctx, token string) (bool, error) {
-			user, err := s.authService.ParseToken(token)
-			if err != nil {
-				return false, keyauth.ErrMissingOrMalformedAPIKey
-			}
-			c.Locals("user", *user)
-			return true, nil
-		},
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":   "Unauthorized",
-				"message": err.Error(),
-			})
-		},
+		KeyLookup:    "cookie:access_token",
+		Validator:    s.authService.ValidateSession,
+		ErrorHandler: s.authHandler.AuthFailHandler,
 	})
 
 	api.Get("/health", s.healthHandler)

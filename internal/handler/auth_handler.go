@@ -20,6 +20,7 @@ type AuthHandler interface {
 	GoogleLoginHandler(c *fiber.Ctx) error
 	GoogleCallbackHandler(c *fiber.Ctx) error
 	LogoutHandler(c *fiber.Ctx) error
+	AuthFailHandler(c *fiber.Ctx, err error) error
 }
 
 type authHandler struct {
@@ -28,17 +29,15 @@ type authHandler struct {
 }
 
 func NewAuthHandler(db database.Service) AuthHandler {
-	googleOauthConfig := &oauth2.Config{
-		RedirectURL:  os.Getenv("CLIENT_URL") + os.Getenv("OAUTH_REDIRECT_URL"),
-		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
-		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
-		Endpoint:     google.Endpoint,
-	}
-
 	return &authHandler{
-		authService:       service.NewAuthService(db),
-		googleOauthConfig: googleOauthConfig,
+		authService: service.NewAuthService(db),
+		googleOauthConfig: &oauth2.Config{
+			RedirectURL:  os.Getenv("CLIENT_URL") + os.Getenv("OAUTH_REDIRECT_URL"),
+			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+			ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+			Scopes:       []string{"https://www.googleapis.com/auth/userinfo.email"},
+			Endpoint:     google.Endpoint,
+		},
 	}
 }
 
@@ -170,5 +169,12 @@ func (h *authHandler) LogoutHandler(c *fiber.Ctx) error {
 	c.Cookie(h.authService.GenerateAuthCookie(""))
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Logged out successfully",
+	})
+}
+
+func (h *authHandler) AuthFailHandler(c *fiber.Ctx, err error) error {
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+		"error":   "Unauthorized",
+		"message": err.Error(),
 	})
 }
