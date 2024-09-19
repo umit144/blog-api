@@ -5,8 +5,6 @@ all: build
 
 build:
 	@echo "Building..."
-	
-	
 	@go build -o main cmd/api/main.go
 
 # Run the application
@@ -31,10 +29,21 @@ docker-down:
 		docker-compose down; \
 	fi
 
-# Test the application
+# Test the application using gotestsum
 test:
 	@echo "Running tests..."
-	@go test ./tests/... -v
+	@if command -v gotestsum > /dev/null; then \
+		gotestsum --format pkgname -- ./tests/... -v; \
+	else \
+		read -p "gotestsum is not installed. Do you want to install it? [Y/n] " choice; \
+		if [ "$$choice" != "n" ] && [ "$$choice" != "N" ]; then \
+			go install gotest.tools/gotestsum@latest; \
+			gotestsum --format pkgname -- ./tests/... -v; \
+		else \
+			echo "Running tests without gotestsum..."; \
+			go test ./tests/... -v; \
+		fi; \
+	fi
 
 # Clean the binary
 clean:
