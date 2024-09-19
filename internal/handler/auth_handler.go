@@ -3,20 +3,23 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"go-blog/internal/database"
 	"go-blog/internal/service"
 	"go-blog/internal/types"
+	"os"
+
+	"github.com/gofiber/fiber/v2"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"os"
 )
 
 type AuthHandler interface {
 	LoginHandler(c *fiber.Ctx) error
 	RegisterHandler(c *fiber.Ctx) error
+	SessionHandler(c *fiber.Ctx) error
 	GoogleLoginHandler(c *fiber.Ctx) error
 	GoogleCallbackHandler(c *fiber.Ctx) error
+	LogoutHandler(c *fiber.Ctx) error
 }
 
 type authHandler struct {
@@ -95,6 +98,18 @@ func (h *authHandler) RegisterHandler(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(createdUser)
 }
 
+func (h *authHandler) SessionHandler(c *fiber.Ctx) error {
+	user, ok := c.Locals("user").(types.User)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error":   "Unauthorized",
+			"message": "Session not found",
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(user)
+}
+
 func (h *authHandler) GoogleLoginHandler(c *fiber.Ctx) error {
 	url := h.googleOauthConfig.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
 	return c.Redirect(url, fiber.StatusTemporaryRedirect)
@@ -149,4 +164,11 @@ func (h *authHandler) GoogleCallbackHandler(c *fiber.Ctx) error {
 	c.Cookie(h.authService.GenerateAuthCookie(*jwtToken))
 
 	return c.JSON(user)
+}
+
+func (h *authHandler) LogoutHandler(c *fiber.Ctx) error {
+	c.Cookie(h.authService.GenerateAuthCookie(""))
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Logged out successfully",
+	})
 }

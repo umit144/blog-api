@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"go-blog/internal/types"
 	"log"
 	"time"
 
@@ -28,10 +27,26 @@ func (s *FiberServer) RegisterFiberRoutes() {
 			c.Locals("user", *user)
 			return true, nil
 		},
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error":   "Unauthorized",
+				"message": err.Error(),
+			})
+		},
 	})
 
 	api.Get("/health", s.healthHandler)
 	api.Get("/websocket", websocket.New(s.websocketHandler))
+
+	authRoutes := api.Group("/auth")
+	{
+		authRoutes.Post("/login", s.authHandler.LoginHandler)
+		authRoutes.Post("/register", s.authHandler.RegisterHandler)
+		authRoutes.Get("/session", authMiddleware, s.authHandler.SessionHandler)
+		authRoutes.Get("/google/login", s.authHandler.GoogleLoginHandler)
+		authRoutes.Post("/google/callback", s.authHandler.GoogleCallbackHandler)
+		authRoutes.Get("/logout", s.authHandler.LogoutHandler)
+	}
 
 	userRoutes := api.Group("/user")
 	userRoutes.Use(authMiddleware)
@@ -66,26 +81,6 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		categoryRoutes.Put("/:id", s.categoryHandler.UpdateCategoryHandler)
 		categoryRoutes.Delete("/:id", s.categoryHandler.DeleteCategoryHandler)
 	}
-
-	authRoutes := api.Group("/auth")
-	{
-		authRoutes.Post("/login", s.authHandler.LoginHandler)
-		authRoutes.Post("/register", s.authHandler.RegisterHandler)
-		authRoutes.Get("/google/login", s.authHandler.GoogleLoginHandler)
-		authRoutes.Post("/google/callback", s.authHandler.GoogleCallbackHandler)
-	}
-
-	authRoutes.Get("/session", authMiddleware, func(ctx *fiber.Ctx) error {
-		user, ok := ctx.Locals("user").(types.User)
-		if !ok {
-			return ctx.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"error":   "Unauthorized",
-				"message": "Session not found",
-			})
-		}
-
-		return ctx.Status(fiber.StatusOK).JSON(user)
-	})
 }
 
 func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {
