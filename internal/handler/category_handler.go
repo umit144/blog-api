@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"regexp"
@@ -23,10 +22,8 @@ type categoryHandler struct {
 	categoryRepository repository.CategoryRepository
 }
 
-func NewCategoryHandler(db database.Service) CategoryHandler {
-	return &categoryHandler{
-		categoryRepository: repository.NewCategoryRepository(db.GetInstance()),
-	}
+func NewCategoryHandler(categoryRepository repository.CategoryRepository) CategoryHandler {
+	return &categoryHandler{categoryRepository}
 }
 
 func (h *categoryHandler) GetCategoryHandler(c *fiber.Ctx) error {

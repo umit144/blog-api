@@ -2,7 +2,6 @@ package handler
 
 import (
 	"fmt"
-	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"regexp"
@@ -28,10 +27,8 @@ type postHandler struct {
 	postRepository repository.PostRepository
 }
 
-func NewPostHandler(db database.Service) PostHandler {
-	return &postHandler{
-		postRepository: repository.NewPostRepository(db.GetInstance()),
-	}
+func NewPostHandler(postRepository repository.PostRepository) PostHandler {
+	return &postHandler{postRepository}
 }
 
 func (h *postHandler) GetPostHandler(c *fiber.Ctx) error {

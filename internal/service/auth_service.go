@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
 	"os"
@@ -32,10 +31,8 @@ type AuthService interface {
 	ValidateSession(c *fiber.Ctx, token string) (bool, error)
 }
 
-func NewAuthService(db database.Service) AuthService {
-	return &authService{
-		userRepository: repository.NewUserRepository(db.GetInstance()),
-	}
+func NewAuthService(userRepository repository.UserRepository) AuthService {
+	return &authService{userRepository}
 }
 
 func (s *authService) ParseToken(tokenString string) (*types.User, error) {

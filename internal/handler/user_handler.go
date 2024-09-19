@@ -2,10 +2,10 @@ package handler
 
 import (
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"go-blog/internal/database"
 	"go-blog/internal/repository"
 	"go-blog/internal/types"
+
+	"github.com/gofiber/fiber/v2"
 )
 
 type userHandler struct {
@@ -19,10 +19,8 @@ type UserHandler interface {
 	DeleteUserHandler(c *fiber.Ctx) error
 }
 
-func NewUserHandler(db database.Service) UserHandler {
-	return &userHandler{
-		userRepository: repository.NewUserRepository(db.GetInstance()),
-	}
+func NewUserHandler(userRepository repository.UserRepository) UserHandler {
+	return &userHandler{userRepository}
 }
 
 func (h *userHandler) GetUserHandler(c *fiber.Ctx) error {

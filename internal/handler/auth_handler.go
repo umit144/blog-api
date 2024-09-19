@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"fmt"
-	"go-blog/internal/database"
 	"go-blog/internal/service"
 	"go-blog/internal/types"
 	"os"
@@ -28,9 +27,9 @@ type authHandler struct {
 	googleOauthConfig *oauth2.Config
 }
 
-func NewAuthHandler(db database.Service) AuthHandler {
+func NewAuthHandler(authService service.AuthService) AuthHandler {
 	return &authHandler{
-		authService: service.NewAuthService(db),
+		authService: authService,
 		googleOauthConfig: &oauth2.Config{
 			RedirectURL:  os.Getenv("CLIENT_URL") + os.Getenv("OAUTH_REDIRECT_URL"),
 			ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
