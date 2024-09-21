@@ -55,22 +55,26 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	}
 
 	postRoutes := api.Group("/posts")
-	postRoutes.Get("/", s.postHandler.GetPostHandler)
-	postRoutes.Get("/:slugOrId", s.postHandler.GetPostHandler)
-	postRoutes.Post("/", authMiddleware, s.postHandler.CreatePostHandler)
-	postRoutes.Put("/:id", authMiddleware, s.postHandler.UpdatePostHandler)
-	postRoutes.Delete("/:id", authMiddleware, s.postHandler.DeletePostHandler)
-	postRoutes.Post("/:postId/categories/:categoryId", authMiddleware, s.postHandler.AssignCategoryToPostHandler)
-	postRoutes.Delete("/:postId/categories/:categoryId", authMiddleware, s.postHandler.UnassignCategoryFromPostHandler)
-	postRoutes.Get("/:postId/categories", s.postHandler.GetCategoriesForPostHandler)
-	postRoutes.Put("/:postId/categories", authMiddleware, s.postHandler.UpdatePostCategoriesHandler)
+	{
+		postRoutes.Get("/", s.postHandler.GetPostHandler)
+		postRoutes.Get("/:slugOrId", s.postHandler.GetPostHandler)
+		postRoutes.Post("/", authMiddleware, s.postHandler.CreatePostHandler)
+		postRoutes.Put("/:id", authMiddleware, s.postHandler.UpdatePostHandler)
+		postRoutes.Delete("/:id", authMiddleware, s.postHandler.DeletePostHandler)
+		postRoutes.Post("/:postId/categories/:categoryId", authMiddleware, s.postHandler.AssignCategoryToPostHandler)
+		postRoutes.Delete("/:postId/categories/:categoryId", authMiddleware, s.postHandler.UnassignCategoryFromPostHandler)
+		postRoutes.Get("/:postId/categories", s.postHandler.GetCategoriesForPostHandler)
+		postRoutes.Put("/:postId/categories", authMiddleware, s.postHandler.UpdatePostCategoriesHandler)
+	}
 
 	categoryRoutes := api.Group("/categories")
-	categoryRoutes.Get("/", s.categoryHandler.GetCategoryHandler)
-	categoryRoutes.Get("/:slugOrId", s.categoryHandler.GetCategoryHandler)
-	categoryRoutes.Post("/", authMiddleware, s.categoryHandler.CreateCategoryHandler)
-	categoryRoutes.Put("/:id", authMiddleware, s.categoryHandler.UpdateCategoryHandler)
-	categoryRoutes.Delete("/:id", authMiddleware, s.categoryHandler.DeleteCategoryHandler)
+	{
+		categoryRoutes.Get("/", s.categoryHandler.GetCategoryHandler)
+		categoryRoutes.Get("/:slugOrId", s.categoryHandler.GetCategoryHandler)
+		categoryRoutes.Post("/", authMiddleware, s.categoryHandler.CreateCategoryHandler)
+		categoryRoutes.Put("/:id", authMiddleware, s.categoryHandler.UpdateCategoryHandler)
+		categoryRoutes.Delete("/:id", authMiddleware, s.categoryHandler.DeleteCategoryHandler)
+	}
 
 	fileRoutes := api.Group("/files")
 	fileRoutes.Use(authMiddleware)
