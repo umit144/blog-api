@@ -36,7 +36,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		authRoutes.Get("/logout", s.authHandler.LogoutHandler)
 	}
 
-	userRoutes := api.Group("/user")
+	userRoutes := api.Group("/users")
 	userRoutes.Use(authMiddleware)
 	{
 		userRoutes.Get("/", s.userHandler.GetUserHandler)
@@ -46,7 +46,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		userRoutes.Delete("/:id", s.userHandler.DeleteUserHandler)
 	}
 
-	postRoutes := api.Group("/post")
+	postRoutes := api.Group("/posts")
 	postRoutes.Use(authMiddleware)
 	{
 		postRoutes.Get("/", s.postHandler.GetPostHandler)
@@ -60,7 +60,7 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		postRoutes.Put("/:postId/categories", s.postHandler.UpdatePostCategoriesHandler)
 	}
 
-	categoryRoutes := api.Group("/category")
+	categoryRoutes := api.Group("/categories")
 	categoryRoutes.Use(authMiddleware)
 	{
 		categoryRoutes.Get("/", s.categoryHandler.GetCategoryHandler)
@@ -68,6 +68,13 @@ func (s *FiberServer) RegisterFiberRoutes() {
 		categoryRoutes.Post("/", s.categoryHandler.CreateCategoryHandler)
 		categoryRoutes.Put("/:id", s.categoryHandler.UpdateCategoryHandler)
 		categoryRoutes.Delete("/:id", s.categoryHandler.DeleteCategoryHandler)
+	}
+
+	fileRoutes := api.Group("/files")
+	fileRoutes.Use(authMiddleware)
+	{
+		fileRoutes.Post("/", s.fileHandler.UploadFileHandler)
+		fileRoutes.Delete("/:filename", s.fileHandler.DeleteFileHandler)
 	}
 }
 
@@ -80,7 +87,7 @@ func (s *FiberServer) HelloWorldHandler(c *fiber.Ctx) error {
 }
 
 func (s *FiberServer) healthHandler(c *fiber.Ctx) error {
-	return c.JSON(s.db.Health())
+	return c.JSON(s.dbStatus)
 }
 
 func (s *FiberServer) websocketHandler(con *websocket.Conn) {

@@ -16,33 +16,38 @@ import (
 type FiberServer struct {
 	*fiber.App
 
-	db              database.Service
+	dbStatus        map[string]string
 	userHandler     handler.UserHandler
 	authHandler     handler.AuthHandler
-	authService     service.AuthService
 	postHandler     handler.PostHandler
 	categoryHandler handler.CategoryHandler
+	fileHandler     handler.FileHandler
+
+	authService service.AuthService
 }
 
 func New() *FiberServer {
 	var db = database.New()
+
 	var userRepository = repository.NewUserRepository(db.GetInstance())
 	var postRepository = repository.NewPostRepository(db.GetInstance())
 	var categoryRepository = repository.NewCategoryRepository(db.GetInstance())
+
 	var authService = service.NewAuthService(userRepository)
+	var fileService = service.NewFileService()
 
 	server := &FiberServer{
 		App: fiber.New(fiber.Config{
 			ServerHeader: "go-blog",
 			AppName:      "go-blog",
 		}),
-
-		db:              db,
+		dbStatus:        db.Health(),
 		userHandler:     handler.NewUserHandler(userRepository),
 		authHandler:     handler.NewAuthHandler(authService),
-		authService:     authService,
 		postHandler:     handler.NewPostHandler(postRepository),
 		categoryHandler: handler.NewCategoryHandler(categoryRepository),
+		fileHandler:     handler.NewFileHandler(fileService),
+		authService:     authService,
 	}
 
 	server.Use(logger.New(logger.Config{
