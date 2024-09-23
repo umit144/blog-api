@@ -339,7 +339,7 @@ func (repo postRepository) FindById(id string) (*types.Post, error) {
 }
 
 func (repo postRepository) Create(post types.Post) (*types.Post, error) {
-	slug, err := repo.generateUniqueSlug(post.Slug, "")
+	slug, err := repo.generateUniqueSlug(post.Slug)
 	if err != nil {
 		return nil, fmt.Errorf("error generating unique slug: %v", err)
 	}
@@ -379,7 +379,7 @@ func (repo postRepository) Update(id string, post types.Post) (*types.Post, erro
 		return nil, fmt.Errorf("error finding post to update: %v", err)
 	}
 
-	slug, err := repo.generateUniqueSlug(post.Slug, id)
+	slug, err := repo.generateUniqueSlug(post.Slug)
 	if err != nil {
 		return nil, fmt.Errorf("error generating unique slug for update: %v", err)
 	}
@@ -442,7 +442,7 @@ func (repo postRepository) Delete(id string) error {
 	return nil
 }
 
-func (repo postRepository) generateUniqueSlug(baseSlug string, excludeId string) (string, error) {
+func (repo postRepository) generateUniqueSlug(baseSlug string) (string, error) {
 	slug := baseSlug
 	counter := 1
 
