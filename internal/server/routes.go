@@ -49,9 +49,6 @@ func (s *FiberServer) RegisterFiberRoutes() {
 	{
 		userRoutes.Get("/", s.userHandler.GetUserHandler)
 		userRoutes.Get("/:id", s.userHandler.GetUserHandler)
-		userRoutes.Post("/", s.userHandler.CreateUserHandler)
-		userRoutes.Put("/:id", s.userHandler.UpdateUserHandler)
-		userRoutes.Delete("/:id", s.userHandler.DeleteUserHandler)
 	}
 
 	postRoutes := api.Group("/posts")

@@ -79,7 +79,7 @@ func (u User) CreateToken() (*string, error) {
 		"sub":           u.Id,
 		"iss":           "go-blog",
 		"aud":           "user-role",
-		"exp":           time.Now().Add(time.Hour * 24).Unix(), // Token geçerlilik süresini 24 saate çıkardık
+		"exp":           time.Now().Add(time.Hour * 24).Unix(),
 		"iat":           time.Now().Unix(),
 		"auth_provider": u.AuthProvider,
 	})
