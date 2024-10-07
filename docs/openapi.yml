@@ -1,105 +1,18 @@
 openapi: 3.1.0
 info:
-  title: Go Blog API
+  title: Blog API
   version: 1.0.0
-  description: API for a Go-based blog application
+  description: API for a blog application with authentication, posts, categories, and file management
 
 servers:
-  - url: https://api.example.com/api
-
-components:
-  securitySchemes:
-    CookieAuth:
-      type: apiKey
-      in: cookie
-      name: access_token
-  schemas:
-    User:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-          format: password
-    Post:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-        content:
-          type: string
-        slug:
-          type: string
-        author:
-          $ref: "#/components/schemas/User"
-        categories:
-          type: array
-          items:
-            $ref: "#/components/schemas/Category"
-    Category:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        title:
-          type: string
-        slug:
-          type: string
-    Error:
-      type: object
-      properties:
-        error:
-          type: string
-        message:
-          type: string
+  - url: http://api.example.com/v1
 
 paths:
-  /:
-    get:
-      summary: Hello World
-      responses:
-        "200":
-          description: Hello World message
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-
-  /api/health:
-    get:
-      summary: Health check
-      responses:
-        "200":
-          description: Database status
-          content:
-            application/json:
-              schema:
-                type: object
-
-  /api/websocket:
-    get:
-      summary: WebSocket connection
-      responses:
-        "101":
-          description: Switching Protocols to WebSocket
-
-  /api/auth/login:
+  /auth/login:
     post:
       summary: User login
+      tags:
+        - Authentication
       requestBody:
         required: true
         content:
@@ -109,147 +22,122 @@ paths:
               properties:
                 email:
                   type: string
-                  format: email
                 password:
                   type: string
-                  format: password
       responses:
-        "200":
+        '200':
           description: Successful login
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "401":
+                $ref: '#/components/schemas/User'
+        '401':
           description: Authentication failed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/auth/register:
+  /auth/register:
     post:
       summary: User registration
+      tags:
+        - Authentication
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/User"
+              $ref: '#/components/schemas/User'
       responses:
-        "201":
-          description: User created successfully
+        '201':
+          description: User registered successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "400":
+                $ref: '#/components/schemas/User'
+        '400':
           description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/auth/session:
+  /auth/session:
     get:
       summary: Get current user session
+      tags:
+        - Authentication
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       responses:
-        "200":
+        '200':
           description: Current user session
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "401":
+                $ref: '#/components/schemas/User'
+        '401':
           description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/auth/google/login:
+  /auth/google/login:
     get:
       summary: Initiate Google OAuth login
+      tags:
+        - Authentication
       responses:
-        "302":
+        '307':
           description: Redirect to Google OAuth
 
-  /api/auth/google/callback:
+  /auth/google/callback:
     post:
       summary: Google OAuth callback
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
       responses:
-        "200":
-          description: Successful Google login
+        '200':
+          description: Successful OAuth login
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "401":
+                $ref: '#/components/schemas/User'
+        '401':
           description: Authentication failed
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/auth/logout:
+  /auth/logout:
     get:
       summary: User logout
+      tags:
+        - Authentication
       responses:
-        "200":
-          description: Successfully logged out
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
+        '200':
+          description: Logged out successfully
 
-  /api/users:
+  /users:
     get:
       summary: Get all users
+      tags:
+        - Users
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       responses:
-        "200":
+        '200':
           description: List of users
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/User"
-    post:
-      summary: Create a new user
-      security:
-        - CookieAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/User"
-      responses:
-        "201":
-          description: User created successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                  $ref: '#/components/schemas/User'
 
-  /api/users/{id}:
+  /users/{id}:
     get:
-      summary: Get a specific user
+      summary: Get user by ID
+      tags:
+        - Users
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: id
@@ -257,98 +145,31 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: User details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/User"
-        "404":
+                $ref: '#/components/schemas/User'
+        '404':
           description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-    put:
-      summary: Update a user
-      security:
-        - CookieAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/User"
-      responses:
-        "200":
-          description: User updated successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-    delete:
-      summary: Delete a user
-      security:
-        - CookieAuth: []
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: User deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        "404":
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/posts:
+  /posts:
     get:
       summary: Get all posts
-      security:
-        - CookieAuth: []
+      tags:
+        - Posts
       parameters:
         - in: query
           name: page
           schema:
             type: integer
-            default: 1
         - in: query
           name: limit
           schema:
             type: integer
-            default: 10
       responses:
-        "200":
+        '200':
           description: List of posts
           content:
             application/json:
@@ -369,36 +190,34 @@ paths:
                   data:
                     type: array
                     items:
-                      $ref: "#/components/schemas/Post"
+                      $ref: '#/components/schemas/Post'
     post:
       summary: Create a new post
+      tags:
+        - Posts
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Post"
+              $ref: '#/components/schemas/Post'
       responses:
-        "201":
+        '201':
           description: Post created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Post"
-        "400":
+                $ref: '#/components/schemas/Post'
+        '400':
           description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/posts/{slugOrId}:
+  /posts/{slugOrId}:
     get:
-      summary: Get a specific post
-      security:
-        - CookieAuth: []
+      summary: Get post by slug or ID
+      tags:
+        - Posts
       parameters:
         - in: path
           name: slugOrId
@@ -406,24 +225,22 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Post details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Post"
-        "404":
+                $ref: '#/components/schemas/Post'
+        '404':
           description: Post not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/posts/{id}:
+  /posts/{id}:
     put:
       summary: Update a post
+      tags:
+        - Posts
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: id
@@ -435,36 +252,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Post"
+              $ref: '#/components/schemas/Post'
       responses:
-        "200":
+        '200':
           description: Post updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Post"
-        "400":
+                $ref: '#/components/schemas/Post'
+        '400':
           description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "403":
-          description: Forbidden - User doesn't have permission
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
+        '404':
           description: Post not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
     delete:
       summary: Delete a post
+      tags:
+        - Posts
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: id
@@ -472,26 +277,18 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Post deleted successfully
-        "403":
-          description: Forbidden - User doesn't have permission
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
+        '404':
           description: Post not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/posts/{postId}/categories/{categoryId}:
+  /posts/{postId}/categories/{categoryId}:
     post:
       summary: Assign category to post
+      tags:
+        - Posts
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: postId
@@ -504,24 +301,14 @@ paths:
           schema:
             type: string
       responses:
-        "201":
+        '201':
           description: Category assigned successfully
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: Post or Category not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
     delete:
       summary: Unassign category from post
+      tags:
+        - Posts
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: postId
@@ -534,20 +321,14 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Category unassigned successfully
-        "404":
-          description: Post or Category not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/posts/{postId}/categories:
+  /posts/{postId}/categories:
     get:
       summary: Get categories for a post
-      security:
-        - CookieAuth: []
+      tags:
+        - Posts
       parameters:
         - in: path
           name: postId
@@ -555,24 +336,20 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: List of categories for the post
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Category"
-        "404":
-          description: Post not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+                  $ref: '#/components/schemas/Category'
     put:
       summary: Update categories for a post
+      tags:
+        - Posts
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: postId
@@ -591,64 +368,50 @@ paths:
                   items:
                     type: string
       responses:
-        "200":
+        '200':
           description: Categories updated successfully
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
-          description: Post not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/categories:
+  /categories:
     get:
       summary: Get all categories
-      security:
-        - CookieAuth: []
+      tags:
+        - Categories
       responses:
-        "200":
+        '200':
           description: List of categories
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Category"
+                  $ref: '#/components/schemas/Category'
     post:
       summary: Create a new category
+      tags:
+        - Categories
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Category"
+              $ref: '#/components/schemas/Category'
       responses:
-        "201":
+        '201':
           description: Category created successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Category"
-        "400":
+                $ref: '#/components/schemas/Category'
+        '400':
           description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
-  /api/categories/{slugOrId}:
+  /categories/{slugOrId}:
     get:
-      summary: Get a specific category
-      security:
-        - CookieAuth: []
+      summary: Get category by slug or ID
+      tags:
+        - Categories
       parameters:
         - in: path
           name: slugOrId
@@ -656,23 +419,22 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: Category details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Category"
-        "404":
+                $ref: '#/components/schemas/Category'
+        '404':
           description: Category not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /api/categories/{id}:
+
+  /categories/{id}:
     put:
       summary: Update a category
+      tags:
+        - Categories
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: id
@@ -684,30 +446,24 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/Category"
+              $ref: '#/components/schemas/Category'
       responses:
-        "200":
+        '200':
           description: Category updated successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Category"
-        "400":
+                $ref: '#/components/schemas/Category'
+        '400':
           description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "404":
+        '404':
           description: Category not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
     delete:
       summary: Delete a category
+      tags:
+        - Categories
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: id
@@ -715,21 +471,19 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        '204':
           description: Category deleted successfully
-        "404":
+        '404':
           description: Category not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /api/files:
+
+  /files:
     post:
       summary: Upload a file
+      tags:
+        - Files
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       requestBody:
-        required: true
         content:
           multipart/form-data:
             schema:
@@ -739,7 +493,7 @@ paths:
                   type: string
                   format: binary
       responses:
-        "200":
+        '200':
           description: File uploaded successfully
           content:
             application/json:
@@ -750,17 +504,16 @@ paths:
                     type: string
                   filename:
                     type: string
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /api/files/{filename}:
+        '400':
+          description: File upload failed
+
+  /files/{filename}:
     delete:
       summary: Delete a file
+      tags:
+        - Files
       security:
-        - CookieAuth: []
+        - BearerAuth: []
       parameters:
         - in: path
           name: filename
@@ -768,18 +521,56 @@ paths:
           schema:
             type: string
       responses:
-        "200":
+        '200':
           description: File deleted successfully
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-        "400":
-          description: Invalid input
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
+        '400':
+          description: Filename is required
+        '500':
+          description: Failed to delete file
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        profilePicture:
+          type: string
+    Post:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        slug:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        slug:
+          type: string
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
